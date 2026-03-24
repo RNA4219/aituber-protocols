@@ -788,7 +788,7 @@ describe('Exchange Flow Integration Tests', () => {
         body: {},
       };
 
-      await expect(server.handleMessage(invalidMessage)).rejects.toThrow('Missing message_id');
+      await expect(server.handleMessage(invalidMessage)).rejects.toThrow('Missing or invalid message_id');
     });
 
     it('should reject message with non-existent session', async () => {
@@ -948,7 +948,7 @@ describe('Exchange Flow Integration Tests', () => {
         body: {},
       };
 
-      await expect(client.handleIncomingMessage(invalidMessage)).rejects.toThrow('missing');
+      await expect(client.handleIncomingMessage(invalidMessage)).rejects.toThrow('Invalid message: protocol_version must be a string');
     });
 
     it('should update session ID', () => {

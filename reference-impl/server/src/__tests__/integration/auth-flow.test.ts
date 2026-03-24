@@ -739,7 +739,7 @@ describe('Authentication Flow Integration Tests', () => {
         epochs: challenge2.epochs,
       };
 
-      const proof2 = await proofGenerator.generateProof(challengeInfo2);
+      const proof2 = await localProofGenerator.generateProof(challengeInfo2);
       const result2 = await verifier.verifyProof(challenge2.challenge_id, proof2);
       expect(result2.status).toBe('VERIFIED');
     });
