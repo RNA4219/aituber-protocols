@@ -56,9 +56,9 @@
   - 署名付きイベント追加成功 (統合テスト Step7)
   - レスポンス: `{"append_status":"APPENDED","event_id":"evt_...","checkpoint":"chk_2"}`
 - [x] GET /v1/ledger/events - イベント一覧取得
-  - 空配列返却確認
+  - checkpoint / event_count を含む正常応答確認
 - [x] GET /v1/ledger/checkpoint - チェックポイント取得
-  - レスポンス: `{"checkpoint":"chk_2","event_count":0,...}`
+  - レスポンス: `{"checkpoint":"chk_2","event_count":1,...}`
 
 ## 7. 暗号機能確認
 
@@ -71,7 +71,7 @@
 
 - [x] 全テストがパスする
   - テストファイル数: 19
-  - テスト数: 981 passed
+  - テスト数: 1004 passed
 - [x] カバレッジが80%以上
   - カバレッジ: 83%以上
 
@@ -94,8 +94,8 @@
 | DELETE /v1/sessions/:sessionId | OK | Session終了成功 |
 | GET /v1/agents/:agentId/revocation | OK | Freshness Status取得確認 |
 | POST /v1/ledger/events | OK | 署名付きイベント追加成功 |
-| GET /v1/ledger/events | OK | イベント一覧取得確認 |
-| GET /v1/ledger/checkpoint | OK | チェックポイント取得確認 |
+| GET /v1/ledger/events | OK | checkpoint / event_count 応答確認 |
+| GET /v1/ledger/checkpoint | OK | event_count がイベント追加数と整合 |
 
 ### 自動テストで代替確認済み
 
@@ -134,7 +134,7 @@ Detailed Results:
 
 **総合判定**: 合格
 
-**判定理由**: 全APIエンドポイントの動作確認完了。981テスト全パス、カバレッジ83%以上。統合テスト9ステップ全て成功。Challenge-Response認証フロー、Session管理、Ledgerイベント追加まで完全なフローが検証済み。
+**判定理由**: 全APIエンドポイントの動作確認完了。1004テスト全パス、カバレッジ83%以上。統合テスト9ステップ全て成功。`npm run validate` で examples / test-vectors と schema の整合も確認済み。Challenge-Response認証フロー、Session管理、Ledgerイベント追加まで完全なフローが検証済み。
 
 検収者: Claude Code
 日付: 2026-03-24

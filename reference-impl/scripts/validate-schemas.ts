@@ -56,6 +56,7 @@ const EXAMPLES_DIR = path.resolve(__dirname, '../../examples');
 // Map message_type values to exchange schema files
 const MESSAGE_TYPE_TO_SCHEMA: Record<string, string> = {
   'hello': 'exchange/hello.schema.json',
+  'profile.response': 'exchange/profile-response.schema.json',
   'goodbye': 'exchange/goodbye.schema.json',
   'message': 'exchange/message.schema.json',
   'error': 'exchange/error.schema.json',
@@ -224,6 +225,11 @@ function detectSchema(data: Record<string, unknown>): string | null {
     return null;
   }
 
+  // Special case: proof-submission-request has challenge_id and proof together
+  if (keys.includes('challenge_id') && keys.includes('proof') && typeof data.proof === 'object') {
+    return 'discovery/proof-submission-request.schema.json';
+  }
+
   // Check for unique identifiers first (definitive identification)
   for (const [uniqueField, schemaFile] of Object.entries(UNIQUE_IDENTIFIERS)) {
     if (keys.includes(uniqueField)) {
@@ -327,6 +333,17 @@ function processExampleFile(filePath: string): Array<{ data: Record<string, unkn
       if (step.response) {
         const schema = detectSchema(step.response);
         messages.push({ data: step.response, schema, source: 'response', stepNumber });
+      }
+
+      // Process step.messages[]
+      if (Array.isArray(step.messages)) {
+        for (const message of step.messages) {
+          if (message && typeof message === 'object' && !Array.isArray(message)) {
+            const typedMessage = message as Record<string, unknown>;
+            const schema = detectSchema(typedMessage);
+            messages.push({ data: typedMessage, schema, source: 'message', stepNumber });
+          }
+        }
       }
     }
   }

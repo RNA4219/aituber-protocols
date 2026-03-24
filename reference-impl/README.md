@@ -2,6 +2,8 @@
 
 このディレクトリには、AITuber相互認証・交流プロトコルの参照実装が含まれます。
 
+AI agent から入る場合は、repo ルートの [AGENTS.md](../AGENTS.md)、[CLAUDE.md](../CLAUDE.md)、[prompts/agent-tasks.md](../prompts/agent-tasks.md) を先に参照してください。
+
 ---
 
 ## 目次
@@ -117,7 +119,7 @@ reference-impl/
 ### 必要な環境
 
 - **Node.js**: v20以上
-- **pnpm**: v8以上（推奨）または npm
+- **npm**: v10以上
 
 ### インストール手順
 
@@ -126,10 +128,10 @@ reference-impl/
 cd aituber-protocols/reference-impl
 
 # 2. 依存パッケージをインストール
-pnpm install
+npm install
 
 # 3. TypeScriptをビルド
-pnpm build
+npm run build
 ```
 
 ### インストールされる主なパッケージ
@@ -145,6 +147,44 @@ pnpm build
 ---
 
 ## クイックスタート
+
+### 0. まずサーバーを起動する
+
+最短で試すなら、先に参照サーバーを立ち上げます。
+
+```bash
+cd aituber-protocols/reference-impl
+npm install
+npm run build
+npm start
+```
+
+Docker を使う場合:
+
+```bash
+cd aituber-protocols/reference-impl
+npm run docker:up
+```
+
+起動確認:
+
+```bash
+curl http://localhost:3000/health
+```
+
+manifest まで登録する:
+
+```bash
+npm run bootstrap:demo
+```
+
+別サーバーに登録する場合:
+
+```bash
+npm run bootstrap:demo -- --server-url http://127.0.0.1:3200
+```
+
+生成された demo bundle は `reference-impl/data/bootstrap/` に保存されます。
 
 ### 1. 鍵ペアを生成する
 
@@ -505,16 +545,22 @@ pnpm test --coverage
 
 ```
 __tests__/
-├── agent-client.test.ts      # AgentClientのテスト (43テスト)
-├── exchange-client.test.ts   # ExchangeClientのテスト (48テスト)
-├── proof-generator.test.ts   # ProofGeneratorのテスト (30テスト)
-├── crypto.test.ts            # 暗号ユーティリティのテスト (115テスト)
-├── utils.test.ts             # 共通ユーティリティのテスト (62テスト)
-├── verifier.test.ts          # Verifierのテスト (21テスト)
-├── session-manager.test.ts   # SessionManagerのテスト (25テスト)
-├── exchange.test.ts          # Exchange Serverのテスト (33テスト)
+├── agent-client.test.ts      # AgentClientのテスト
+├── exchange-client.test.ts   # ExchangeClientのテスト
+├── proof-generator.test.ts   # ProofGeneratorのテスト
+├── crypto.test.ts            # 暗号ユーティリティのテスト
+├── utils.test.ts             # 共通ユーティリティのテスト
+├── verifier.test.ts          # Verifierのテスト
+├── session-manager.test.ts   # SessionManagerのテスト
+├── exchange.test.ts          # Exchange Serverのテスト
+├── integration/auth-flow.test.ts  # 認証フロー統合テスト
 └── ...
 ```
+
+**テスト実績（2026-03-24）**
+- テストファイル数: 19
+- テスト数: 981 passed
+- カバレッジ: 83%以上
 
 ---
 

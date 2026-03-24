@@ -40,7 +40,15 @@ import { generateKeyPair, signObject, verifyObject } from '../server/src/crypto'
 // Configuration
 // ============================================================================
 
-const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
+function getArgValue(flag: string): string | undefined {
+  const index = process.argv.indexOf(flag);
+  if (index === -1 || index + 1 >= process.argv.length) {
+    return undefined;
+  }
+  return process.argv[index + 1];
+}
+
+const SERVER_URL = getArgValue('--server-url') || process.env.SERVER_URL || 'http://localhost:3000';
 const VERBOSE = process.env.VERBOSE === 'true' || process.argv.includes('--verbose');
 const SKIP_MANIFEST = process.argv.includes('--skip-manifest');
 
@@ -611,7 +619,7 @@ async function runIntegrationTests(): Promise<IntegrationTestReport> {
     intent: 'PROFILE_READ',
     capabilityDigest: 'sha256:test_capability_digest',
     sessionPubkey: fixtures.keys.sessionKey.publicKey,
-    operationPrivateKey: fixtures.keys.operationKey.privateKey,
+    sessionPrivateKey: fixtures.keys.sessionKey.privateKey,
   });
 
   const proofResult = await verifyProof(challengeResult.data.challenge_id, proof);

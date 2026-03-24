@@ -16,22 +16,34 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:integration": "tsx scripts/integration-test.ts",
+    "bootstrap:demo": "tsx scripts/bootstrap-demo.ts",
     "validate": "tsx scripts/run-validation.ts",
     "validate:schemas": "tsx scripts/validate-schemas.ts",
     "validate:vectors": "tsx scripts/validate-test-vectors.ts",
-    "lint": "eslint '*/src/**/*.ts' --ext .ts",
+    "docker:build": "docker build -t aituber-protocols-reference-impl .",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "lint": "eslint server/src client/src watcher/src",
     "clean": "rimraf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
+    "security": "npm run audit && npm outdated"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.0.0",
-    "typescript": "^5.3.0",
-    "vitest": "^1.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
     "@vitest/coverage-v8": "^1.2.0",
-    "tsx": "^4.7.0",
-    "rimraf": "^5.0.0",
     "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1"
+    "ajv-formats": "^2.1.1",
+    "eslint": "^10.1.0",
+    "rimraf": "^5.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.57.2",
+    "vitest": "^1.2.0"
   },
   "engines": {
     "node": ">=20.0.0"
