@@ -1,0 +1,57 @@
+{
+  "spec_version": "0.2",
+  "manifest_version": 1,
+  "controller_id": "ctrl_test_001",
+  "agent_id": "agt_test_001",
+  "persona_id": "persona_test_001",
+  "persona_profile_hash": "sha256:test_persona_hash",
+  "identity_version": 1,
+  "updated_at": "2026-03-24T12:03:15.000Z",
+  "ledger_ref": "ledger://test.example.com/agt_test_001",
+  "revocation_ref": "revocation://test.example.com/agt_test_001",
+  "keys": [
+    {
+      "key_id": "opk_test_001",
+      "scope": "operation",
+      "algorithm": "ed25519",
+      "public_key": "09b886df102fb060b54c9961b28940b07764bcdd9ee7c1b0f6477b6a4bd890b1",
+      "status": "active",
+      "valid_from": "2026-03-24T12:03:15.000Z"
+    }
+  ],
+  "platform_bindings": [
+    {
+      "platform_type": "x",
+      "platform_account_id": "123456789",
+      "display_handle": "@test_agent_ai",
+      "binding_status": "active",
+      "verified_at": "2026-01-15T00:00:00Z",
+      "bound_by_key_id": "opk_test_001",
+      "binding_version": 1
+    }
+  ],
+  "service_endpoints": [
+    {
+      "name": "api",
+      "url": "https://api.test.example.com",
+      "kind": "rest"
+    }
+  ],
+  "capability_summary": {
+    "capabilities": [
+      "profile.read",
+      "profile.write",
+      "message.send"
+    ],
+    "capability_digest": "sha256:test_capability_digest"
+  },
+  "policy_ref": "policy://test.example.com/default",
+  "signatures": [
+    {
+      "key_id": "root_test_001",
+      "algorithm": "ed25519",
+      "canonicalization": "jcs",
+      "value": "acefca39fad7e2acaba3b745b09974160f86fbf2140ef67ce9299bc47ccdc28047c65feaac2aedc532b9112b1d0e5f2a9787000a99c4aa0c091c480cc32f6b04"
+    }
+  ]
+}

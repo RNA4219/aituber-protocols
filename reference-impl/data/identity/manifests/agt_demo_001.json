@@ -1,0 +1,56 @@
+{
+  "spec_version": "0.2",
+  "manifest_version": 1,
+  "controller_id": "ctrl_demo_001",
+  "agent_id": "agt_demo_001",
+  "persona_id": "agt_demo_001_persona",
+  "persona_profile_hash": "sha256:demo-persona-profile",
+  "identity_version": 1,
+  "updated_at": "2026-03-24T12:12:23.025Z",
+  "ledger_ref": "http://127.0.0.1:3200/v1/ledger/events?agent_id=agt_demo_001",
+  "revocation_ref": "http://127.0.0.1:3200/v1/agents/agt_demo_001/revocation",
+  "keys": [
+    {
+      "key_id": "opk_demo_001",
+      "scope": "operation",
+      "algorithm": "ed25519",
+      "public_key": "108183658268d789fef362cd7afc23710de00fb121be90f1e5d152a593224472",
+      "status": "active",
+      "valid_from": "2026-03-24T12:12:23.025Z"
+    }
+  ],
+  "platform_bindings": [
+    {
+      "platform_type": "discord",
+      "platform_account_id": "demo-account",
+      "display_handle": "@aituber-demo",
+      "binding_status": "active",
+      "verified_at": "2026-03-24T12:12:23.025Z",
+      "bound_by_key_id": "opk_demo_001",
+      "binding_version": 1
+    }
+  ],
+  "service_endpoints": [
+    {
+      "name": "auth",
+      "url": "http://127.0.0.1:3200/v1",
+      "kind": "rest"
+    }
+  ],
+  "capability_summary": {
+    "capabilities": [
+      "profile.read",
+      "message.send"
+    ],
+    "capability_digest": "sha256:demo-capability-digest"
+  },
+  "policy_ref": "http://127.0.0.1:3200/policies/default",
+  "signatures": [
+    {
+      "key_id": "opk_demo_001",
+      "algorithm": "ed25519",
+      "canonicalization": "jcs",
+      "value": "ccf5cbad8181e2fa46e223da093b5dbbe0fb8f385eb2e8923135221a45fc805a8362985ffe49a59cc04b471f7270c81e11ebf94474bcf1d9f31c962e72e28d0a"
+    }
+  ]
+}
