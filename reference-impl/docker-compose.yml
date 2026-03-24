@@ -1,0 +1,17 @@
+services:
+  aituber-protocol-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      STORAGE_ROOT: "./data/identity"
+      LEDGER_STORAGE_ROOT: "./data/ledger"
+      IDENTITY_CACHE_TTL: "600"
+      CHALLENGE_TTL: "60"
+      SESSION_TTL: "300"
+    volumes:
+      - ./data:/app/data
