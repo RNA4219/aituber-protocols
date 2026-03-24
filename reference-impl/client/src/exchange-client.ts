@@ -45,12 +45,9 @@ import type {
   Timestamp,
   NonNegativeInteger,
   UriString,
-  CapabilitySummary,
   CapabilityName,
-  PlatformType,
   RiskLevel,
   ExchangeMessageType,
-  ExchangeEnvelope,
   HelloBody,
   ProfileRequestBody,
   ProfileResponseBody,
@@ -437,7 +434,8 @@ export class ExchangeClient {
    * 受信メッセージ処理
    */
   async handleIncomingMessage(rawMessage: unknown): Promise<void | ExchangeMessage> {
-    const message = rawMessage as ExchangeMessage;
+    // 型ガードによる検証
+    const message = this.parseAndValidateMessage(rawMessage);
 
     // メッセージ検証
     this.validateMessage(message);
@@ -480,6 +478,60 @@ export class ExchangeClient {
       timestamp: new Date().toISOString(),
       data: message,
     });
+  }
+
+  /**
+   * 生メッセージを検証してExchangeMessageに変換する
+   * @throws Error メッセージが無効な場合
+   */
+  private parseAndValidateMessage(rawMessage: unknown): ExchangeMessage {
+    if (!rawMessage || typeof rawMessage !== 'object') {
+      throw new Error('Invalid message: expected an object');
+    }
+
+    const msg = rawMessage as Record<string, unknown>;
+
+    // 必須フィールドの存在と型チェック
+    if (typeof msg.protocol_version !== 'string') {
+      throw new Error('Invalid message: protocol_version must be a string');
+    }
+    if (typeof msg.message_id !== 'string') {
+      throw new Error('Invalid message: message_id must be a string');
+    }
+    if (typeof msg.message_type !== 'string') {
+      throw new Error('Invalid message: message_type must be a string');
+    }
+    if (typeof msg.timestamp !== 'string') {
+      throw new Error('Invalid message: timestamp must be a string');
+    }
+    if (typeof msg.agent_id !== 'string') {
+      throw new Error('Invalid message: agent_id must be a string');
+    }
+    if (typeof msg.instance_id !== 'string') {
+      throw new Error('Invalid message: instance_id must be a string');
+    }
+    if (typeof msg.session_id !== 'string') {
+      throw new Error('Invalid message: session_id must be a string');
+    }
+    if (typeof msg.sequence !== 'number' || !Number.isInteger(msg.sequence) || msg.sequence < 0) {
+      throw new Error('Invalid message: sequence must be a non-negative integer');
+    }
+    if (msg.signature_or_mac !== undefined && typeof msg.signature_or_mac !== 'string') {
+      throw new Error('Invalid message: signature_or_mac must be a string if present');
+    }
+
+    return {
+      protocol_version: msg.protocol_version,
+      message_id: msg.message_id,
+      message_type: msg.message_type as ExchangeMessageType,
+      timestamp: msg.timestamp,
+      agent_id: msg.agent_id,
+      instance_id: msg.instance_id,
+      session_id: msg.session_id,
+      sequence: msg.sequence as NonNegativeInteger,
+      signature_or_mac: msg.signature_or_mac as string | undefined,
+      body: msg.body,
+    };
   }
 
   private validateMessage(message: ExchangeMessage): void {
@@ -685,7 +737,7 @@ export class ExchangeClient {
    */
   async dispose(): Promise<void> {
     // ペンディングリクエストのタイムアウト
-    for (const [messageId, pending] of this.pendingRequests) {
+    for (const pending of this.pendingRequests.values()) {
       clearTimeout(pending.timeout);
       pending.reject(new Error('Client disposed'));
     }

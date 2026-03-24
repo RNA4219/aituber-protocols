@@ -5,8 +5,8 @@
 
 import { Hono } from 'hono';
 import type { ErrorResponse, IdString, RiskLevel, NonNegativeInteger, CapabilitySummary, SessionTerminationReason, FreshnessStatus } from '../types.js';
-import type { Challenge, Proof, VerificationResult, Verifier } from '../verifier.js';
-import type { Session, SessionManager } from '../session-manager.js';
+import type { Proof, Verifier } from '../verifier.js';
+import type { SessionManager } from '../session-manager.js';
 
 // ============================================================================
 // Request/Response Types
@@ -277,6 +277,20 @@ app.delete('/sessions/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId') as IdString;
 
   try {
+    // sessionIdの形式を検証
+    if (!sessionId || sessionId.length < 3 || sessionId.length > 128) {
+      const errorResponse: ErrorResponse = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid session_id format',
+          retryable: false,
+          risk_level: 'low',
+          details: { session_id: sessionId },
+        },
+      };
+      return c.json(errorResponse, 400);
+    }
+
     // リクエストボディから終了理由を取得
     let reason: SessionTerminationReason = 'manual_termination';
 
@@ -285,8 +299,9 @@ app.delete('/sessions/:sessionId', async (c) => {
       if (body.reason_code) {
         reason = body.reason_code;
       }
-    } catch {
-      // ボディがない場合はデフォルト値を使用
+    } catch (parseError) {
+      // ボディのパースエラーはデバッグログを出力し、デフォルト値を使用
+      console.debug('No request body or invalid JSON for session termination:', parseError);
     }
 
     // セッションが存在するか確認

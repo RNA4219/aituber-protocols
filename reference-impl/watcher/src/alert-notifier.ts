@@ -13,6 +13,7 @@ import type {
   IdString,
   Timestamp,
   AlertHandler,
+  RecommendedAction,
 } from './types.js';
 
 /** デフォルト設定 */
@@ -311,7 +312,7 @@ export class AlertNotifier {
     alert_type: AlertType;
     severity: WatcherSeverity;
     evidence_refs: string[];
-    recommended_action: string;
+    recommended_action: RecommendedAction;
     details?: Record<string, unknown>;
   }): WatcherAlert {
     return {
@@ -321,7 +322,7 @@ export class AlertNotifier {
       detected_at: new Date().toISOString(),
       severity: params.severity,
       evidence_refs: params.evidence_refs,
-      recommended_action: params.recommended_action as any,
+      recommended_action: params.recommended_action,
       details: params.details,
     };
   }
@@ -441,7 +442,7 @@ export class AlertFactory {
     details?: Record<string, unknown>
   ): WatcherAlert {
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as IdString,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}` as IdString,
       agent_id: agentId,
       alert_type: 'SPLIT_VIEW_SUSPECTED',
       detected_at: new Date().toISOString(),
@@ -465,7 +466,7 @@ export class AlertFactory {
     details?: Record<string, unknown>
   ): WatcherAlert {
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as IdString,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}` as IdString,
       agent_id: agentId,
       alert_type: 'ROLLBACK_SUSPECTED',
       detected_at: new Date().toISOString(),
@@ -490,7 +491,7 @@ export class AlertFactory {
     details?: Record<string, unknown>
   ): WatcherAlert {
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as IdString,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}` as IdString,
       agent_id: agentId,
       alert_type: 'CHECKPOINT_CONFLICT',
       detected_at: new Date().toISOString(),
@@ -513,7 +514,7 @@ export class AlertFactory {
     details?: Record<string, unknown>
   ): WatcherAlert {
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as IdString,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}` as IdString,
       agent_id: agentId,
       alert_type: 'UNEXPECTED_KEY_ROTATION',
       detected_at: new Date().toISOString(),
@@ -537,7 +538,7 @@ export class AlertFactory {
     details?: Record<string, unknown>
   ): WatcherAlert {
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as IdString,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}` as IdString,
       agent_id: agentId,
       alert_type: 'RECOVERY_SEQUENCE_INVALID',
       detected_at: new Date().toISOString(),
@@ -561,7 +562,7 @@ export class AlertFactory {
     details?: Record<string, unknown>
   ): WatcherAlert {
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as IdString,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}` as IdString,
       agent_id: agentId,
       alert_type: 'STALE_REVOCATION_EXCESSIVE',
       detected_at: new Date().toISOString(),

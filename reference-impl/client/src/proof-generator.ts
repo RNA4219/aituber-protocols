@@ -116,7 +116,7 @@ export class ProofGeneratorImpl implements ProofGenerator {
     const proof: Proof = this.buildProof(challenge, sessionKey, capabilityDigest);
 
     // 署名生成
-    proof.signature.value = await this.signProof(proof);
+    proof.signature.value = await this.signProof(proof, sessionKey.privateKey);
 
     return proof;
   }
@@ -196,7 +196,7 @@ export class ProofGeneratorImpl implements ProofGenerator {
   /**
    * Proofに署名
    */
-  private async signProof(proof: Proof): Promise<string> {
+  private async signProof(proof: Proof, privateKey: string): Promise<string> {
     // 署名対象はsignature.valueを空にしたproofオブジェクト
     const proofForSignature: Proof = {
       ...proof,
@@ -207,7 +207,7 @@ export class ProofGeneratorImpl implements ProofGenerator {
     };
 
     // セッション秘密鍵で署名（検証はセッション公開鍵で行う）
-    return signObject(proofForSignature, this.sessionKeyPair!.privateKey);
+    return signObject(proofForSignature, privateKey);
   }
 }
 

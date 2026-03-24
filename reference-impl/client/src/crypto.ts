@@ -199,9 +199,6 @@ function _canonicalizeValue(value: unknown): string {
  * RFC 8785 Section 3.2.2.3 に準拠
  */
 function _serializeNumber(num: number): string {
-  // 非常に小さいまたは非常に大きい数値は指数表現
-  const absNum = Math.abs(num);
-
   // 整数値の場合
   if (Number.isInteger(num)) {
     return num.toString();
@@ -361,10 +358,31 @@ export function hashRaw(data: string): string {
  * hex文字列をバイト配列に変換する
  * @param hex hex文字列
  * @returns バイト配列
+ * @throws Error hex文字列が無効な場合
  */
 function hexToBytes(hex: string): Uint8Array {
+  if (typeof hex !== 'string') {
+    throw new Error('Invalid hex: input must be a string');
+  }
+
   // 0xプレフィックスを削除
   const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
+
+  // 偶数長チェック
+  if (cleanHex.length % 2 !== 0) {
+    throw new Error(`Invalid hex: length must be even (got ${cleanHex.length})`);
+  }
+
+  // 空文字チェック
+  if (cleanHex.length === 0) {
+    throw new Error('Invalid hex: empty string');
+  }
+
+  // 16進数文字チェック
+  if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
+    throw new Error('Invalid hex: contains non-hexadecimal characters');
+  }
+
   const bytes = new Uint8Array(cleanHex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(cleanHex.slice(i * 2, i * 2 + 2), 16);
@@ -454,8 +472,9 @@ export async function generateSessionKeyPair(keyId?: string): Promise<{
 export function clearKeyPair(keyPair: KeyPair): void {
   // ベストエフォートでのクリア
   // 注: 文字列はイミュータブルなので、オブジェクト参照を削除するのみ
-  if (keyPair) {
-    (keyPair as unknown as Record<string, unknown>).publicKey = '';
-    (keyPair as unknown as Record<string, unknown>).privateKey = '';
+  if (keyPair && typeof keyPair === 'object') {
+    // 型安全なプロパティクリア
+    Object.defineProperty(keyPair, 'publicKey', { value: '', writable: true, configurable: true });
+    Object.defineProperty(keyPair, 'privateKey', { value: '', writable: true, configurable: true });
   }
 }

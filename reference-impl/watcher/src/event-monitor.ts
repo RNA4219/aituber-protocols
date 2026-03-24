@@ -112,10 +112,18 @@ export class EventMonitor {
    * 特定Agentのチェックポイント確認
    */
   private async checkAgentCheckpoint(agentId: IdString): Promise<EventMonitorResult> {
+    if (!this.ledgerClient) {
+      return {
+        new_events: [],
+        current_checkpoint: '',
+        anomalies: [],
+      };
+    }
+
     const state = this.agentStates.get(agentId);
     const sinceCheckpoint = state?.last_known_checkpoint;
 
-    const result = await this.ledgerClient!.getAgentEvents(agentId, {
+    const result = await this.ledgerClient.getAgentEvents(agentId, {
       sinceCheckpoint,
       maxEvents: 100,
     });
@@ -152,20 +160,31 @@ export class EventMonitor {
   }
 
   /**
-   * イベントを変換
+   * イベントを変換（型安全な変換）
    */
   private convertToWatchedEvent(event: Record<string, unknown>): WatchedEvent {
+    // 必須フィールドの検証
+    if (typeof event.event_id !== 'string') {
+      throw new Error('Invalid event: missing or invalid event_id');
+    }
+    if (typeof event.agent_id !== 'string') {
+      throw new Error('Invalid event: missing or invalid agent_id');
+    }
+    if (typeof event.event_type !== 'string') {
+      throw new Error('Invalid event: missing or invalid event_type');
+    }
+
     return {
       event_id: event.event_id as IdString,
       event_type: event.event_type as LedgerEventType,
       agent_id: event.agent_id as IdString,
-      controller_id: event.controller_id as IdString,
-      event_time: event.event_time as string,
-      recorded_at: event.recorded_at as string,
-      sequence: event.sequence as number,
-      ledger_checkpoint: event.ledger_checkpoint as string,
+      controller_id: (event.controller_id as IdString) || ('' as IdString),
+      event_time: (event.event_time as string) || new Date().toISOString(),
+      recorded_at: (event.recorded_at as string) || new Date().toISOString(),
+      sequence: (event.sequence as number) ?? 0,
+      ledger_checkpoint: (event.ledger_checkpoint as string) || '',
       prev_event_hash: event.prev_event_hash as string | undefined,
-      payload: event.payload as Record<string, unknown>,
+      payload: (event.payload as Record<string, unknown>) || {},
     };
   }
 
@@ -280,7 +299,6 @@ export class EventMonitor {
     };
 
     const lastSequence = typeof lastEvent.sequence === 'number' ? lastEvent.sequence : 0;
-    const lastLedgerCheckpoint = typeof lastEvent.ledger_checkpoint === 'string' ? lastEvent.ledger_checkpoint : checkpoint;
 
     if (currentState) {
       currentState.last_known_checkpoint = checkpoint;

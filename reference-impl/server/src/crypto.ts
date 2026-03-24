@@ -217,9 +217,6 @@ function _canonicalizeValue(value: unknown): string {
  * RFC 8785 Section 3.2.2.3 に準拠
  */
 function _serializeNumber(num: number): string {
-  // 非常に小さいまたは非常に大きい数値は指数表現
-  const absNum = Math.abs(num);
-
   // 整数値の場合
   if (Number.isInteger(num)) {
     return num.toString();

@@ -21,11 +21,7 @@ import type {
   NonNegativeInteger,
   RiskLevel,
   FreshnessStatus,
-  AgentStatus,
-  QuarantineLevel,
   VersionVector,
-  CapabilityDigest,
-  AgentIdentityRef,
   AuthErrorCode,
 } from './types.js';
 import {
@@ -265,7 +261,12 @@ export class VerifierImpl implements Verifier {
     }
 
     // 署名検証
-    const signatureValid = await this.verifySignature(proof);
+    let signatureValid = false;
+    try {
+      signatureValid = await this.verifySignature(proof);
+    } catch {
+      // verification failed, signatureValid remains false
+    }
     if (!signatureValid) {
       return {
         status: 'REJECTED',

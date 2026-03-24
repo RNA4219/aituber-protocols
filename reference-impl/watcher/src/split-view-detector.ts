@@ -223,7 +223,7 @@ export class SplitViewDetector {
     }
 
     return {
-      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      alert_id: `alt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       agent_id: conflict.agent_id,
       alert_type: alertType,
       detected_at: conflict.detected_at,

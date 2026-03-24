@@ -154,7 +154,10 @@ export class SessionManagerImpl implements SessionManager {
     if (!this.agentSessions.has(request.agent_id)) {
       this.agentSessions.set(request.agent_id, new Set());
     }
-    this.agentSessions.get(request.agent_id)!.add(sessionId);
+    const agentSessionSet = this.agentSessions.get(request.agent_id);
+    if (agentSessionSet) {
+      agentSessionSet.add(sessionId);
+    }
 
     return session;
   }
@@ -174,11 +177,11 @@ export class SessionManagerImpl implements SessionManager {
   async renewSession(sessionId: IdString): Promise<Session> {
     const session = await this.getSession(sessionId);
     if (!session) {
-      throw new Error('Session not found');
+      throw new Error(`Session not found: ${sessionId}`);
     }
 
     if (session.status === 'terminated') {
-      throw new Error('Cannot renew terminated session');
+      throw new Error(`Cannot renew terminated session: ${sessionId}`);
     }
 
     const now = new Date();
@@ -216,26 +219,31 @@ export class SessionManagerImpl implements SessionManager {
     const sessionIds = this.agentSessions.get(agentId);
     if (!sessionIds) return 0;
 
-    let count = 0;
-    for (const sessionId of sessionIds) {
-      await this.terminateSession(sessionId, reason);
-      count++;
-    }
+    // Terminate all sessions in parallel for better performance
+    const sessionIdsArray = Array.from(sessionIds);
+    await Promise.all(
+      sessionIdsArray.map(sessionId => this.terminateSession(sessionId, reason))
+    );
 
-    return count;
+    return sessionIdsArray.length;
   }
 
   async cleanupExpiredSessions(): Promise<number> {
     const now = new Date();
-    let count = 0;
+    const expiredSessions: IdString[] = [];
 
+    // Collect expired session IDs first
     for (const [sessionId, session] of this.sessions) {
       if (new Date(session.expires_at) < now && session.status !== 'terminated') {
-        await this.terminateSession(sessionId, 'expired');
-        count++;
+        expiredSessions.push(sessionId);
       }
     }
 
-    return count;
+    // Terminate all expired sessions in parallel
+    await Promise.all(
+      expiredSessions.map(sessionId => this.terminateSession(sessionId, 'expired'))
+    );
+
+    return expiredSessions.length;
   }
 }

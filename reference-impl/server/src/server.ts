@@ -4,9 +4,8 @@
  */
 
 import { serve } from '@hono/node-server';
-import { Hono } from 'hono';
 
-import { createApi, type ApiContext } from './api/index.js';
+import { createApi } from './api/index.js';
 import { IdentityHostImpl, type IdentityHostConfig } from './identity-host.js';
 import { VerifierImpl, type VerifierConfig } from './verifier.js';
 import { SessionManagerImpl, type SessionManagerConfig } from './session-manager.js';

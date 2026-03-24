@@ -32,11 +32,9 @@
 
 import type {
   IdString,
-  Timestamp,
   NonNegativeInteger,
   UriString,
   RiskLevel,
-  AgentIdentityRef,
   IdentityManifest,
   Challenge,
   Proof,
@@ -56,11 +54,11 @@ import type {
   AgentClientConfig,
   ClientEvent,
   ClientEventHandler,
-  ClientEventType,
   EpochBundle,
   CapabilitySummary,
   DiscoverySource,
-  SessionStatus,
+  SessionReasonCode,
+  PlatformType,
 } from './types.js';
 import { DEFAULT_TIMEOUT_MS, DEFAULT_CACHE_TTL_MS, Cache, EventEmitter } from './utils.js';
 
@@ -159,7 +157,13 @@ export class AgentClient {
       const manifest = await this.fetchManifest(manifestUrl);
       this.manifestCache.set(agentId, manifest);
       return manifest;
-    } catch {
+    } catch (error) {
+      // エラー詳細をイベントとして通知
+      this.emitEvent({
+        type: 'error_occurred',
+        timestamp: new Date().toISOString(),
+        data: { error, agentId, manifestUrl },
+      });
       return null;
     }
   }
@@ -446,7 +450,7 @@ export class AgentClient {
    */
   async terminateSession(
     sessionId: IdString,
-    reasonCode: Session['session_status'] extends 'terminated' ? never : string,
+    reasonCode: SessionReasonCode,
     reasonDetail?: string
   ): Promise<void> {
     const session = this.sessions.get(sessionId);
@@ -458,7 +462,7 @@ export class AgentClient {
 
     const request: TerminateSessionRequest = {
       session_id: sessionId,
-      reason_code: reasonCode as any,
+      reason_code: reasonCode,
       reason_detail: reasonDetail,
     };
 
@@ -635,7 +639,7 @@ export class AgentClient {
     // 全Session終了
     for (const session of this.getActiveSessions()) {
       try {
-        await this.terminateSession(session.session_id, 'manual_termination', 'Client disposed');
+        await this.terminateSession(session.session_id, 'MANUAL_TERMINATION', 'Client disposed');
       } catch (error) {
         console.error('Failed to terminate session during dispose:', error);
       }
@@ -662,7 +666,7 @@ export function createAgentClient(config: AgentClientConfig): AgentClient {
  * Identity解決のショートカット
  */
 export async function resolveAgentIdentity(
-  platformType: string,
+  platformType: PlatformType,
   platformAccountId: string,
   displayHandle: string
 ): Promise<ResolveIdentityResponse> {
@@ -675,7 +679,7 @@ export async function resolveAgentIdentity(
 
   return client.resolveIdentity({
     discovery_source: {
-      platform_type: platformType as any,
+      platform_type: platformType,
       platform_account_id: platformAccountId,
       display_handle: displayHandle,
     },

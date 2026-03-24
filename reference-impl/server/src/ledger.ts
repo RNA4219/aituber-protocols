@@ -103,7 +103,10 @@ export class LedgerImpl implements Ledger {
     if (!this.agentEvents.has(event.agent_id)) {
       this.agentEvents.set(event.agent_id, []);
     }
-    this.agentEvents.get(event.agent_id)!.push(event.event_id);
+    const agentEventList = this.agentEvents.get(event.agent_id);
+    if (agentEventList) {
+      agentEventList.push(event.event_id);
+    }
 
     return { checkpoint: this.checkpoint };
   }
@@ -119,9 +122,10 @@ export class LedgerImpl implements Ledger {
     const eventIds = this.agentEvents.get(agentId) || [];
     const maxEvents = options?.maxEvents || 100;
 
+    // Map event IDs to events, filtering out any undefined results
     let events = eventIds
-      .map((id) => this.events.get(id)!)
-      .filter((e) => e !== undefined);
+      .map((id) => this.events.get(id))
+      .filter((e): e is LedgerEvent => e !== undefined);
 
     // チェックポイントでフィルタ
     if (options?.sinceCheckpoint) {
@@ -189,6 +193,7 @@ export class LedgerImpl implements Ledger {
     // 署名検証
     if (this.config.publicKeyProvider && event.signatures && event.signatures.length > 0) {
       // 署名対象データを作成（signaturesフィールドを除く）
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { signatures: _, ...dataToVerify } = event;
 
       let hasValidSignature = false;

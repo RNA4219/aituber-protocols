@@ -77,6 +77,63 @@ export interface IdentityHost {
   ): PlatformBinding | null;
 }
 
+function validateManifestStructure(
+  parsed: unknown,
+  agentId: IdString
+): IdentityManifest | null {
+  if (!parsed || typeof parsed !== 'object') {
+    return null;
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  const requiredStringFields = ['spec_version', 'controller_id', 'agent_id', 'updated_at', 'ledger_ref', 'revocation_ref', 'policy_ref'] as const;
+  for (const field of requiredStringFields) {
+    if (typeof obj[field] !== 'string') {
+      console.error(`Manifest missing or invalid field: ${field}`);
+      return null;
+    }
+  }
+
+  if (typeof obj.manifest_version !== 'number' || !Number.isInteger(obj.manifest_version) || obj.manifest_version < 0) {
+    console.error('Manifest missing or invalid manifest_version');
+    return null;
+  }
+  if (typeof obj.identity_version !== 'number' || !Number.isInteger(obj.identity_version) || obj.identity_version < 0) {
+    console.error('Manifest missing or invalid identity_version');
+    return null;
+  }
+
+  if (!Array.isArray(obj.keys)) {
+    console.error('Manifest missing or invalid keys array');
+    return null;
+  }
+  if (!Array.isArray(obj.platform_bindings)) {
+    console.error('Manifest missing or invalid platform_bindings array');
+    return null;
+  }
+  if (!Array.isArray(obj.service_endpoints)) {
+    console.error('Manifest missing or invalid service_endpoints array');
+    return null;
+  }
+  if (!Array.isArray(obj.signatures)) {
+    console.error('Manifest missing or invalid signatures array');
+    return null;
+  }
+
+  if (!obj.capability_summary || typeof obj.capability_summary !== 'object') {
+    console.error('Manifest missing or invalid capability_summary');
+    return null;
+  }
+
+  if (obj.agent_id !== agentId) {
+    console.error(`Manifest agent_id mismatch: expected ${agentId}, got ${obj.agent_id}`);
+    return null;
+  }
+
+  return obj as unknown as IdentityManifest;
+}
+
 /**
  * Identity Host 実装
  */
@@ -100,7 +157,14 @@ export class IdentityHostImpl implements IdentityHost {
     const filePath = this.getManifestPath(agentId);
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const manifest = JSON.parse(content) as IdentityManifest;
+      const parsed = JSON.parse(content);
+
+      // Validate manifest structure
+      const manifest = validateManifestStructure(parsed, agentId);
+      if (!manifest) {
+        console.error(`Invalid manifest structure for agent ${agentId}`);
+        return null;
+      }
 
       // キャッシュに保存
       this.cache.set(agentId, {
@@ -195,6 +259,7 @@ export class IdentityHostImpl implements IdentityHost {
     }
 
     // 署名対象データを作成（signaturesフィールドを除く）
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { signatures: _, ...dataToVerify } = manifest;
 
     // 各署名を検証
@@ -228,10 +293,9 @@ export class IdentityHostImpl implements IdentityHost {
       }
     }
 
-    // 有効な署名が1つも見つからなかった場合
-    // ただし、後方互換性のため、署名はあるが検証できない場合はtrueを返す
-    // （テスト用のダミー署名などの場合）
-    return manifest.signatures.length > 0;
+    // 有効な署名が1つも見つからなかった場合はfalseを返す
+    // セキュリティ: 署名が存在する場合は必ず検証に成功しなければならない
+    return false;
   }
 
   matchBinding(

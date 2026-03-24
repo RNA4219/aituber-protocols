@@ -226,6 +226,127 @@ export interface ExchangeEvent {
 export type ExchangeEventHandler = (event: ExchangeEvent) => void;
 
 // ============================================================================
+// Body Type Guards
+// ============================================================================
+
+/** Type guard for HelloBody */
+function isHelloBody(body: unknown): body is HelloBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.capability_summary === 'object' &&
+         typeof b.identity_version === 'number' &&
+         typeof b.revocation_epoch === 'number';
+}
+
+/** Type guard for ProfileRequestBody */
+function isProfileRequestBody(body: unknown): body is ProfileRequestBody {
+  if (!body || typeof body !== 'object') return true;
+  const b = body as Record<string, unknown>;
+  return b.requested_fields === undefined || Array.isArray(b.requested_fields);
+}
+
+/** Type guard for ProfileResponseBody */
+function isProfileResponseBody(body: unknown): body is ProfileResponseBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.profile === 'object';
+}
+
+/** Type guard for CapabilityRequestBody */
+function isCapabilityRequestBody(body: unknown): body is CapabilityRequestBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return Array.isArray(b.requested_capabilities);
+}
+
+/** Type guard for CapabilityResponseBody */
+function isCapabilityResponseBody(body: unknown): body is CapabilityResponseBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return Array.isArray(b.granted_capabilities) &&
+         Array.isArray(b.denied_capabilities) &&
+         typeof b.effective_capability_digest === 'string';
+}
+
+/** Type guard for CollabInviteBody */
+function isCollabInviteBody(body: unknown): body is CollabInviteBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.invite_id === 'string' &&
+         typeof b.title === 'string' &&
+         typeof b.risk_level === 'string';
+}
+
+/** Type guard for CollabAcceptBody */
+function isCollabAcceptBody(body: unknown): body is CollabAcceptBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.invite_id === 'string' && typeof b.accepted_at === 'string';
+}
+
+/** Type guard for CollabRejectBody */
+function isCollabRejectBody(body: unknown): body is CollabRejectBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.invite_id === 'string' &&
+         typeof b.rejected_at === 'string' &&
+         typeof b.reason_code === 'string';
+}
+
+/** Type guard for CollabDeferBody */
+function isCollabDeferBody(body: unknown): body is CollabDeferBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.invite_id === 'string' &&
+         typeof b.deferred_until === 'string' &&
+         typeof b.reason_code === 'string';
+}
+
+/** Type guard for StatusNotifyBody */
+function isStatusNotifyBody(body: unknown): body is StatusNotifyBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.status_type === 'string';
+}
+
+/** Type guard for SessionRenewBody */
+function isSessionRenewBody(body: unknown): body is SessionRenewBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.current_session_id === 'string' &&
+         typeof b.next_session_id === 'string' &&
+         typeof b.reason_code === 'string';
+}
+
+/** Type guard for SessionTerminateBody */
+function isSessionTerminateBody(body: unknown): body is SessionTerminateBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.session_id === 'string' &&
+         typeof b.reason_code === 'string' &&
+         typeof b.terminated_at === 'string';
+}
+
+/** Type guard for WarningCompromisedBody */
+function isWarningCompromisedBody(body: unknown): body is WarningCompromisedBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.warning_type === 'string' &&
+         typeof b.reported_at === 'string' &&
+         typeof b.recommended_action === 'string';
+}
+
+/** Type guard for PolicyUpdateBody */
+function isPolicyUpdateBody(body: unknown): body is PolicyUpdateBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.policy_epoch === 'number' &&
+         typeof b.previous_policy_epoch === 'number' &&
+         typeof b.effective_at === 'string' &&
+         typeof b.reauth_required === 'boolean';
+}
+
+// ============================================================================
 // Exchange Server Implementation
 // ============================================================================
 
@@ -277,10 +398,8 @@ export class ExchangeServer {
    * Process incoming message
    */
   async handleMessage(rawMessage: unknown): Promise<ExchangeEnvelope | void> {
-    const message = rawMessage as ExchangeEnvelope;
-
-    // Validate message structure
-    this.validateMessage(message);
+    // Validate message structure and type-safe cast
+    const message = this.parseAndValidateMessage(rawMessage);
 
     // Get session
     const session = await this.dependencies.sessionManager.getSession(message.session_id);
@@ -381,7 +500,64 @@ export class ExchangeServer {
   // Validation
   // ==========================================================================
 
+  /**
+   * Parse and validate raw message with type-safe casting
+   * @throws Error if message is invalid
+   */
+  private parseAndValidateMessage(rawMessage: unknown): ExchangeEnvelope {
+    if (!rawMessage || typeof rawMessage !== 'object') {
+      throw new Error('Invalid message: expected an object');
+    }
+
+    const msg = rawMessage as Record<string, unknown>;
+
+    // Required string fields
+    const stringFields = ['message_id', 'message_type', 'timestamp', 'agent_id', 'instance_id', 'session_id', 'protocol_version'] as const;
+    for (const field of stringFields) {
+      if (typeof msg[field] !== 'string') {
+        throw new Error(`Missing or invalid ${field}: expected string`);
+      }
+    }
+
+    // Validate sequence is a non-negative integer
+    if (typeof msg.sequence !== 'number' || !Number.isInteger(msg.sequence) || msg.sequence < 0) {
+      throw new Error('Missing or invalid sequence: expected non-negative integer');
+    }
+
+    // Validate message_type is valid
+    const validTypes: ExchangeMessageType[] = [
+      'hello', 'profile.request', 'profile.response',
+      'capability.request', 'capability.response',
+      'collab.invite', 'collab.accept', 'collab.reject', 'collab.defer',
+      'status.notify', 'session.renew', 'session.terminate',
+      'warning.compromised', 'policy.update',
+    ];
+    if (!validTypes.includes(msg.message_type as ExchangeMessageType)) {
+      throw new Error(`Invalid message_type: ${msg.message_type}`);
+    }
+
+    // Validate protocol version
+    if (msg.protocol_version !== this.config.protocolVersion) {
+      throw new Error(`Unsupported protocol version: ${msg.protocol_version}`);
+    }
+
+    // Type-safe cast after validation
+    return {
+      protocol_version: msg.protocol_version as string,
+      message_id: msg.message_id as IdString,
+      message_type: msg.message_type as ExchangeMessageType,
+      timestamp: msg.timestamp as Timestamp,
+      agent_id: msg.agent_id as IdString,
+      instance_id: msg.instance_id as IdString,
+      session_id: msg.session_id as IdString,
+      sequence: msg.sequence as NonNegativeInteger,
+      signature_or_mac: typeof msg.signature_or_mac === 'string' ? msg.signature_or_mac : undefined,
+      body: msg.body,
+    };
+  }
+
   private validateMessage(message: ExchangeEnvelope): void {
+    // Already validated in parseAndValidateMessage, but keep for explicit checks
     if (!message.message_id) {
       throw new Error('Missing message_id');
     }
@@ -434,16 +610,14 @@ export class ExchangeServer {
       // Manifestから公開鍵を取得
       const manifest = await this.dependencies.identityHost.getManifest(message.agent_id);
       if (!manifest) {
-        // Manifestが見つからない場合は警告ログを出力してスキップ
-        console.warn(`Manifest not found for agent ${message.agent_id}, skipping signature verification`);
-        return;
+        // Manifestが見つからない場合はエラー（セキュリティ上重要）
+        throw new Error(`Cannot verify signature: manifest not found for agent ${message.agent_id}`);
       }
 
       // アクティブな公開鍵を探す（優先順位: operation > session > root）
       const activeKeys = manifest.keys.filter(k => k.status === 'active');
       if (activeKeys.length === 0) {
-        console.warn(`No active keys found for agent ${message.agent_id}`);
-        return;
+        throw new Error(`Cannot verify signature: no active keys found for agent ${message.agent_id}`);
       }
 
       // operation keyを優先
@@ -453,10 +627,11 @@ export class ExchangeServer {
       const publicKey = (operationKey || sessionKey || rootKey || activeKeys[0])?.public_key;
 
       if (!publicKey) {
-        return;
+        throw new Error(`Cannot verify signature: no public key available for agent ${message.agent_id}`);
       }
 
       // 署名対象データを作成（signature_or_macフィールドを除く）
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { signature_or_mac: _, ...dataToVerify } = message;
 
       // 署名検証
@@ -465,12 +640,12 @@ export class ExchangeServer {
         throw new Error('Signature verification failed');
       }
     } catch (error) {
-      // 署名検証エラー
+      // 署名検証エラーは再スロー
       if (error instanceof Error && error.message === 'Signature verification failed') {
         throw error;
       }
-      // その他のエラー（Manifest取得エラーなど）は警告してスキップ
-      console.warn(`Signature verification skipped due to error: ${error}`);
+      // その他のエラーもラップして再スロー
+      throw new Error(`Signature verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 
@@ -489,7 +664,10 @@ export class ExchangeServer {
   private registerDefaultHandlers(): void {
     // Hello handler
     this.onMessage('hello', async (message, context) => {
-      const body = message.body as HelloBody;
+      if (!isHelloBody(message.body)) {
+        throw new Error('Invalid hello message body');
+      }
+      const body = message.body;
 
       // Store peer info in session
       this.emitEvent({
@@ -509,7 +687,10 @@ export class ExchangeServer {
 
     // Profile request handler
     this.onMessage('profile.request', async (message, context) => {
-      const body = message.body as ProfileRequestBody;
+      if (!isProfileRequestBody(message.body)) {
+        throw new Error('Invalid profile.request message body');
+      }
+      // requested_fields is available via type guard validation
       const manifest = await context.identityHost.getManifest(message.agent_id);
 
       if (!manifest) {
@@ -536,7 +717,7 @@ export class ExchangeServer {
         instance_id: context.session.instance_id,
         session_id: context.session.session_id,
         sequence: context.session.sequence + 1,
-        body: { profile } as ProfileResponseBody,
+        body: { profile },
       };
 
       return response;
@@ -544,7 +725,10 @@ export class ExchangeServer {
 
     // Profile response handler
     this.onMessage('profile.response', async (message, context) => {
-      const body = message.body as ProfileResponseBody;
+      if (!isProfileResponseBody(message.body)) {
+        throw new Error('Invalid profile.response message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -561,7 +745,10 @@ export class ExchangeServer {
 
     // Capability request handler
     this.onMessage('capability.request', async (message, context) => {
-      const body = message.body as CapabilityRequestBody;
+      if (!isCapabilityRequestBody(message.body)) {
+        throw new Error('Invalid capability.request message body');
+      }
+      const body = message.body;
 
       // Check requested capabilities against session capabilities
       const sessionCapabilities = context.session.capabilities?.capabilities || [];
@@ -589,7 +776,7 @@ export class ExchangeServer {
           granted_capabilities: granted,
           denied_capabilities: denied,
           effective_capability_digest: context.session.capabilities?.capability_digest || '',
-        } as CapabilityResponseBody,
+        },
       };
 
       return response;
@@ -597,7 +784,10 @@ export class ExchangeServer {
 
     // Capability response handler
     this.onMessage('capability.response', async (message, context) => {
-      const body = message.body as CapabilityResponseBody;
+      if (!isCapabilityResponseBody(message.body)) {
+        throw new Error('Invalid capability.response message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -615,7 +805,10 @@ export class ExchangeServer {
 
     // Collab invite handler
     this.onMessage('collab.invite', async (message, context) => {
-      const body = message.body as CollabInviteBody;
+      if (!isCollabInviteBody(message.body)) {
+        throw new Error('Invalid collab.invite message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -635,7 +828,10 @@ export class ExchangeServer {
 
     // Collab accept handler
     this.onMessage('collab.accept', async (message, context) => {
-      const body = message.body as CollabAcceptBody;
+      if (!isCollabAcceptBody(message.body)) {
+        throw new Error('Invalid collab.accept message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -653,7 +849,10 @@ export class ExchangeServer {
 
     // Collab reject handler
     this.onMessage('collab.reject', async (message, context) => {
-      const body = message.body as CollabRejectBody;
+      if (!isCollabRejectBody(message.body)) {
+        throw new Error('Invalid collab.reject message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -671,7 +870,10 @@ export class ExchangeServer {
 
     // Collab defer handler
     this.onMessage('collab.defer', async (message, context) => {
-      const body = message.body as CollabDeferBody;
+      if (!isCollabDeferBody(message.body)) {
+        throw new Error('Invalid collab.defer message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -690,7 +892,10 @@ export class ExchangeServer {
 
     // Status notify handler
     this.onMessage('status.notify', async (message, context) => {
-      const body = message.body as StatusNotifyBody;
+      if (!isStatusNotifyBody(message.body)) {
+        throw new Error('Invalid status.notify message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -709,7 +914,10 @@ export class ExchangeServer {
 
     // Session renew handler
     this.onMessage('session.renew', async (message, context) => {
-      const body = message.body as SessionRenewBody;
+      if (!isSessionRenewBody(message.body)) {
+        throw new Error('Invalid session.renew message body');
+      }
+      const body = message.body;
 
       const renewedSession = await context.sessionManager.renewSession(body.current_session_id);
 
@@ -729,7 +937,10 @@ export class ExchangeServer {
 
     // Session terminate handler
     this.onMessage('session.terminate', async (message, context) => {
-      const body = message.body as SessionTerminateBody;
+      if (!isSessionTerminateBody(message.body)) {
+        throw new Error('Invalid session.terminate message body');
+      }
+      const body = message.body;
 
       await context.sessionManager.terminateSession(body.session_id, 'manual_termination');
 
@@ -749,7 +960,10 @@ export class ExchangeServer {
 
     // Warning compromised handler
     this.onMessage('warning.compromised', async (message, context) => {
-      const body = message.body as WarningCompromisedBody;
+      if (!isWarningCompromisedBody(message.body)) {
+        throw new Error('Invalid warning.compromised message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',
@@ -767,7 +981,10 @@ export class ExchangeServer {
 
     // Policy update handler
     this.onMessage('policy.update', async (message, context) => {
-      const body = message.body as PolicyUpdateBody;
+      if (!isPolicyUpdateBody(message.body)) {
+        throw new Error('Invalid policy.update message body');
+      }
+      const body = message.body;
 
       this.emitEvent({
         type: 'session_event',

@@ -137,9 +137,25 @@ app.get('/events', async (c) => {
   // クエリパラメータを取得
   const agentId = c.req.query('agent_id') as IdString | undefined;
   const sinceCheckpoint = c.req.query('since_checkpoint');
-  const maxEvents = c.req.query('max_events')
-    ? parseInt(c.req.query('max_events')!, 10)
-    : 100;
+  const maxEventsParam = c.req.query('max_events');
+  let maxEvents = 100;
+
+  if (maxEventsParam) {
+    const parsed = parseInt(maxEventsParam, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      const errorResponse: ErrorResponse = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'max_events must be a positive integer',
+          retryable: false,
+          risk_level: 'low',
+          details: { max_events: maxEventsParam },
+        },
+      };
+      return c.json(errorResponse, 400);
+    }
+    maxEvents = Math.min(parsed, 1000); // 最大1000件に制限
+  }
 
   try {
     if (agentId) {

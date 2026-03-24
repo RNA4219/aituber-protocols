@@ -68,12 +68,60 @@ app.get('/:agentId/revocation', async (c) => {
 
   // クエリパラメータを取得
   const requiredRiskLevel = (c.req.query('required_risk_level') as RiskLevel) || 'low';
-  const knownRevocationEpoch = c.req.query('known_revocation_epoch')
-    ? parseInt(c.req.query('known_revocation_epoch')!, 10)
-    : undefined;
-  const knownIdentityVersion = c.req.query('known_identity_version')
-    ? parseInt(c.req.query('known_identity_version')!, 10)
-    : undefined;
+
+  // Validate required_risk_level
+  if (requiredRiskLevel !== 'low' && requiredRiskLevel !== 'high') {
+    const errorResponse: ErrorResponse = {
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'required_risk_level must be "low" or "high"',
+        retryable: false,
+        risk_level: 'low',
+        details: { required_risk_level: c.req.query('required_risk_level') },
+      },
+    };
+    return c.json(errorResponse, 400);
+  }
+
+  let knownRevocationEpoch: number | undefined;
+  let knownIdentityVersion: number | undefined;
+
+  const revocationEpochParam = c.req.query('known_revocation_epoch');
+  if (revocationEpochParam) {
+    const parsed = parseInt(revocationEpochParam, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      const errorResponse: ErrorResponse = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'known_revocation_epoch must be a non-negative integer',
+          retryable: false,
+          risk_level: requiredRiskLevel,
+          details: { known_revocation_epoch: revocationEpochParam },
+        },
+      };
+      return c.json(errorResponse, 400);
+    }
+    knownRevocationEpoch = parsed;
+  }
+
+  const identityVersionParam = c.req.query('known_identity_version');
+  if (identityVersionParam) {
+    const parsed = parseInt(identityVersionParam, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      const errorResponse: ErrorResponse = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'known_identity_version must be a non-negative integer',
+          retryable: false,
+          risk_level: requiredRiskLevel,
+          details: { known_identity_version: identityVersionParam },
+        },
+      };
+      return c.json(errorResponse, 400);
+    }
+    knownIdentityVersion = parsed;
+  }
+
   const knownLedgerCheckpoint = c.req.query('known_ledger_checkpoint');
 
   try {
@@ -166,7 +214,7 @@ function determineFreshness(
   manifest: IdentityManifest,
   knownRevocationEpoch?: NonNegativeInteger,
   knownIdentityVersion?: NonNegativeInteger,
-  knownLedgerCheckpoint?: string
+  _knownLedgerCheckpoint?: string
 ): FreshnessStatus {
   // 既知の情報がない場合は不明
   if (knownRevocationEpoch === undefined && knownIdentityVersion === undefined) {

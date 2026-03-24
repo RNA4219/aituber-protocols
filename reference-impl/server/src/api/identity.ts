@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import type { ErrorResponse, IdString, RiskLevel } from '../types.js';
+import type { ErrorResponse, IdString } from '../types.js';
 import type { IdentityManifest, IdentityHost } from '../identity-host.js';
 
 /** Identity API Context Variables */

@@ -335,7 +335,7 @@ export async function createSignedProof(options: {
   intent: string;
   capabilityDigest: string;
   sessionPubkey: string;
-  operationPrivateKey: string;
+  sessionPrivateKey: string;
 }): Promise<Proof> {
   const proof = buildProof(options);
 
@@ -350,7 +350,7 @@ export async function createSignedProof(options: {
     },
   };
 
-  const signatureValue = await signObject(payloadToSign, options.operationPrivateKey);
+  const signatureValue = await signObject(payloadToSign, options.sessionPrivateKey);
   proof.signature.value = signatureValue;
 
   return proof;
@@ -524,7 +524,7 @@ export async function generateTestFixtureSet(): Promise<{
     intent: 'PROFILE_READ',
     capabilityDigest: 'sha256:test_capability_digest',
     sessionPubkey: keys.sessionKey.publicKey,
-    operationPrivateKey: keys.operationKey.privateKey,
+    sessionPrivateKey: keys.sessionKey.privateKey,
   });
 
   // Create signed ledger event
