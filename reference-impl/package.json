@@ -1,0 +1,39 @@
+{
+  "name": "aituber-protocols-reference-impl",
+  "version": "0.2.0",
+  "description": "Reference implementation for AITuber Mutual Authentication Protocol",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client",
+    "watcher"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsx watch server/src/server.ts",
+    "start": "node dist/server/src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "tsx scripts/integration-test.ts",
+    "validate": "tsx scripts/run-validation.ts",
+    "validate:schemas": "tsx scripts/validate-schemas.ts",
+    "validate:vectors": "tsx scripts/validate-test-vectors.ts",
+    "lint": "eslint '*/src/**/*.ts' --ext .ts",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "tsx": "^4.7.0",
+    "rimraf": "^5.0.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
