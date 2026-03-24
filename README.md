@@ -7,6 +7,16 @@ X / YouTube / Discord など複数プラットフォームで活動する AITube
 
 この README は「全体像を最短でつかむための入口」です。詳細な正本は [要件定義](./specs/core/requirements.md) と [インターフェース](./specs/core/interfaces.md) を参照してください。
 
+## 現在の位置づけ
+
+このリポジトリは **PoC ではなく、開発者向け MVP の初期段階** です。
+
+- **PoC は卒業済み**: 仕様メモだけではなく、`specs/`、`schemas/`、`examples/`、`test-vectors/`、`reference-impl/` まで揃っています。
+- **MVP として成立している点**: 認証、セッション、失効確認、Ledger、validation、acceptance の一連の流れを実際に検証できます。
+- **まだ製品化前の点**: 実サービス向け UI、配布運用、各プラットフォームへの本格接続、運用監視はこれから拡張する前提です。
+
+短く言うと、**研究用 PoC ではなく、実装検証と導入検討に使える MVP** です。
+
 ## 最初に読む場所
 
 - 全体像を知りたい: [要件定義](./specs/core/requirements.md)
