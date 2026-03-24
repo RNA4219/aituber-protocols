@@ -1523,9 +1523,9 @@ describe('Revocation API Edge Cases', () => {
         '/v1/agents/agt_B001/revocation?required_risk_level=medium'
       );
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
       const body = await response.json();
-      expect(body.freshness_status).toBe('unknown');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should return 400 for stale freshness with high risk', async () => {

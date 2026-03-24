@@ -10,6 +10,10 @@ import type {
   ServiceEndpoint,
   Signature,
 } from '../types.js';
+import * as crypto from '../crypto.js';
+
+// Mock the crypto module
+vi.mock('../crypto.js');
 
 // Helper function to create a valid manifest
 function createMockManifest(overrides?: Partial<IdentityManifest>): IdentityManifest {
@@ -67,13 +71,18 @@ function createMockManifest(overrides?: Partial<IdentityManifest>): IdentityMani
 
 describe('IdentityHost', () => {
   let identityHost: IdentityHostImpl;
-  const defaultConfig: IdentityHostConfig = {
+  const createDefaultConfig = (
+    overrides?: Partial<IdentityHostConfig>
+  ): IdentityHostConfig => ({
     storageRoot: '/tmp/identity-storage',
     cacheTtl: 300, // 5 minutes
-  };
+    skipSignatureValidation: true, // Skip signature validation for tests with mock manifests
+    ...overrides,
+  });
 
   beforeEach(() => {
-    identityHost = new IdentityHostImpl(defaultConfig);
+    vi.clearAllMocks();
+    identityHost = new IdentityHostImpl(createDefaultConfig());
   });
 
   describe('Manifest取得', () => {
@@ -98,10 +107,7 @@ describe('IdentityHost', () => {
 
       it('should return manifest from storage when cache is expired', async () => {
         // Create host with very short TTL
-        const shortTtlHost = new IdentityHostImpl({
-          ...defaultConfig,
-          cacheTtl: 0.001, // 1ms
-        });
+        const shortTtlHost = new IdentityHostImpl(createDefaultConfig({ cacheTtl: 0.001 }));
 
         const mockManifest = createMockManifest({ agent_id: 'agt_expired' });
 
@@ -165,7 +171,7 @@ describe('IdentityHost', () => {
 
       it('should throw error when signature validation fails', async () => {
         const strictHost = new IdentityHostImpl({
-          ...defaultConfig,
+          ...createDefaultConfig(),
           skipSignatureValidation: false,
         });
 
@@ -181,7 +187,7 @@ describe('IdentityHost', () => {
 
       it('should skip signature validation when configured', async () => {
         const skipValidationHost = new IdentityHostImpl({
-          ...defaultConfig,
+          ...createDefaultConfig(),
           skipSignatureValidation: true,
         });
 
@@ -233,16 +239,16 @@ describe('IdentityHost', () => {
 
   describe('署名検証', () => {
     describe('validateManifestSignature', () => {
-      it('should return true for valid signature (placeholder)', async () => {
+      it('should return false for invalid/unverifiable signatures', async () => {
         const mockManifest = createMockManifest();
 
+        // When signatures exist but cannot be verified, return false for security
         const result = await identityHost.validateManifestSignature(mockManifest);
 
-        // Current implementation returns true (placeholder)
-        expect(result).toBe(true);
+        expect(result).toBe(false);
       });
 
-      it('should handle manifests with multiple signatures', async () => {
+      it('should return false for manifests with multiple unverifiable signatures', async () => {
         const multiSigManifest = createMockManifest({
           signatures: [
             {
@@ -260,12 +266,13 @@ describe('IdentityHost', () => {
           ],
         });
 
+        // When signatures exist but cannot be verified, return false for security
         const result = await identityHost.validateManifestSignature(multiSigManifest);
 
-        expect(result).toBe(true);
+        expect(result).toBe(false);
       });
 
-      it('should handle manifests with different signature algorithms', async () => {
+      it('should return false for manifests with different signature algorithms when unverifiable', async () => {
         const manifest = createMockManifest({
           signatures: [
             {
@@ -277,9 +284,10 @@ describe('IdentityHost', () => {
           ],
         });
 
+        // When signatures exist but cannot be verified, return false for security
         const result = await identityHost.validateManifestSignature(manifest);
 
-        expect(result).toBe(true);
+        expect(result).toBe(false);
       });
 
       it('should handle manifest with empty signatures array', async () => {
@@ -290,6 +298,90 @@ describe('IdentityHost', () => {
         const result = await identityHost.validateManifestSignature(noSigManifest);
 
         expect(result).toBe(true);
+      });
+
+      it('should return true when verifyObject returns true (valid signature)', async () => {
+        vi.mocked(crypto.verifyObject).mockResolvedValueOnce(true);
+
+        const mockManifest = createMockManifest({
+          signatures: [
+            {
+              key_id: 'key_001',
+              algorithm: 'ed25519',
+              canonicalization: 'jcs',
+              value: 'valid_signature_hex',
+            },
+          ],
+        });
+
+        const result = await identityHost.validateManifestSignature(mockManifest);
+
+        expect(result).toBe(true);
+        expect(crypto.verifyObject).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle verifyObject throwing an error and continue to next signature', async () => {
+        vi.mocked(crypto.verifyObject).mockRejectedValueOnce(new Error('Verification error'));
+        vi.mocked(crypto.verifyObject).mockResolvedValueOnce(true);
+
+        const mockManifest = createMockManifest({
+          keys: [
+            {
+              key_id: 'key_001',
+              scope: 'operation',
+              algorithm: 'ed25519',
+              public_key: 'a'.repeat(64),
+              status: 'active',
+              valid_from: '2026-03-24T12:00:00Z',
+            },
+            {
+              key_id: 'key_002',
+              scope: 'operation',
+              algorithm: 'ed25519',
+              public_key: 'b'.repeat(64),
+              status: 'active',
+              valid_from: '2026-03-24T12:00:00Z',
+            },
+          ],
+          signatures: [
+            {
+              key_id: 'key_001',
+              algorithm: 'ed25519',
+              canonicalization: 'jcs',
+              value: 'invalid_signature_hex',
+            },
+            {
+              key_id: 'key_002',
+              algorithm: 'ed25519',
+              canonicalization: 'jcs',
+              value: 'valid_signature_hex',
+            },
+          ],
+        });
+
+        const result = await identityHost.validateManifestSignature(mockManifest);
+
+        expect(result).toBe(true);
+        expect(crypto.verifyObject).toHaveBeenCalledTimes(2);
+      });
+
+      it('should return false when all signatures throw errors', async () => {
+        vi.mocked(crypto.verifyObject).mockRejectedValue(new Error('Verification error'));
+
+        const mockManifest = createMockManifest({
+          signatures: [
+            {
+              key_id: 'key_001',
+              algorithm: 'ed25519',
+              canonicalization: 'jcs',
+              value: 'signature_hex',
+            },
+          ],
+        });
+
+        const result = await identityHost.validateManifestSignature(mockManifest);
+
+        expect(result).toBe(false);
       });
     });
   });
@@ -572,6 +664,9 @@ describe('IdentityHost', () => {
 
   describe('統合テスト', () => {
     it('should support full manifest lifecycle', async () => {
+      // Set up mock before any operations
+      vi.mocked(crypto.verifyObject).mockResolvedValue(true);
+
       const manifest = createMockManifest({
         agent_id: 'agt_lifecycle',
         platform_bindings: [

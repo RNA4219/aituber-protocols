@@ -1143,4 +1143,206 @@ describe('Verifier', () => {
       expect(result.version_check?.policy_mismatch).toBe(true);
     });
   });
+
+  describe('署名検証エッジケーステスト', () => {
+    // 署名検証を有効にしたVerifierを使用
+    const signatureVerifyingConfig: VerifierConfig = {
+      nonceTtl: 60,
+      challengeTtl: 60,
+      clockSkewTolerance: 120,
+      nonceRetention: 420,
+      skipSignatureValidation: false, // 署名検証を有効化
+    };
+
+    it('should reject proof when signature is missing', async () => {
+      const verifierWithSigCheck = new VerifierImpl(signatureVerifyingConfig);
+      const request = positiveVectors.POS001.issue_challenge_request;
+      const challenge = await verifierWithSigCheck.issueChallenge(request);
+
+      const proof: Proof = {
+        spec_version: '0.2',
+        proof_id: 'proof_no_sig',
+        challenge_id: challenge.challenge_id,
+        agent_id: 'agt_B001',
+        instance_id: 'ins_B001_001',
+        nonce: challenge.nonce,
+        timestamp: new Date().toISOString(),
+        expires_at: challenge.expires_at,
+        intent: 'PROFILE_READ',
+        capability_digest: 'sha256:digest',
+        identity_version: 5,
+        revocation_epoch: 3,
+        policy_epoch: 2,
+        session_epoch: 10,
+        session_pubkey: {
+          key_id: 'session_key_001',
+          algorithm: 'ed25519',
+          public_key: 'public_key_hex',
+        },
+        signature: {
+          key_id: 'opk_B001_1',
+          algorithm: 'ed25519',
+          canonicalization: 'jcs',
+          value: '', // Empty signature value
+        },
+      };
+
+      const result = await verifierWithSigCheck.verifyProof(challenge.challenge_id, proof);
+
+      expect(result.status).toBe('REJECTED');
+      expect(result.errors?.[0]?.code).toBe('INVALID_SIGNATURE');
+    });
+
+    it('should reject proof when signature object is undefined', async () => {
+      const verifierWithSigCheck = new VerifierImpl(signatureVerifyingConfig);
+      const request = positiveVectors.POS001.issue_challenge_request;
+      const challenge = await verifierWithSigCheck.issueChallenge(request);
+
+      const proof = {
+        spec_version: '0.2',
+        proof_id: 'proof_no_sig_obj',
+        challenge_id: challenge.challenge_id,
+        agent_id: 'agt_B001',
+        instance_id: 'ins_B001_001',
+        nonce: challenge.nonce,
+        timestamp: new Date().toISOString(),
+        expires_at: challenge.expires_at,
+        intent: 'PROFILE_READ',
+        capability_digest: 'sha256:digest',
+        identity_version: 5,
+        revocation_epoch: 3,
+        policy_epoch: 2,
+        session_epoch: 10,
+        session_pubkey: {
+          key_id: 'session_key_001',
+          algorithm: 'ed25519',
+          public_key: 'public_key_hex',
+        },
+        signature: undefined as unknown as { key_id: string; algorithm: string; canonicalization: string; value: string },
+      } as Proof;
+
+      const result = await verifierWithSigCheck.verifyProof(challenge.challenge_id, proof);
+
+      expect(result.status).toBe('REJECTED');
+      expect(result.errors?.[0]?.code).toBe('INVALID_SIGNATURE');
+    });
+
+    it('should reject proof when session_pubkey is missing', async () => {
+      const verifierWithSigCheck = new VerifierImpl(signatureVerifyingConfig);
+      const request = positiveVectors.POS001.issue_challenge_request;
+      const challenge = await verifierWithSigCheck.issueChallenge(request);
+
+      const proof = {
+        spec_version: '0.2',
+        proof_id: 'proof_no_pubkey',
+        challenge_id: challenge.challenge_id,
+        agent_id: 'agt_B001',
+        instance_id: 'ins_B001_001',
+        nonce: challenge.nonce,
+        timestamp: new Date().toISOString(),
+        expires_at: challenge.expires_at,
+        intent: 'PROFILE_READ',
+        capability_digest: 'sha256:digest',
+        identity_version: 5,
+        revocation_epoch: 3,
+        policy_epoch: 2,
+        session_epoch: 10,
+        session_pubkey: undefined as unknown as { key_id: string; algorithm: string; public_key: string },
+        signature: {
+          key_id: 'opk_B001_1',
+          algorithm: 'ed25519',
+          canonicalization: 'jcs',
+          value: 'some_signature_hex',
+        },
+      } as Proof;
+
+      const result = await verifierWithSigCheck.verifyProof(challenge.challenge_id, proof);
+
+      expect(result.status).toBe('REJECTED');
+      expect(result.errors?.[0]?.code).toBe('INVALID_SIGNATURE');
+    });
+
+    it('should reject proof when session_pubkey.public_key is missing', async () => {
+      const verifierWithSigCheck = new VerifierImpl(signatureVerifyingConfig);
+      const request = positiveVectors.POS001.issue_challenge_request;
+      const challenge = await verifierWithSigCheck.issueChallenge(request);
+
+      const proof: Proof = {
+        spec_version: '0.2',
+        proof_id: 'proof_no_pubkey_value',
+        challenge_id: challenge.challenge_id,
+        agent_id: 'agt_B001',
+        instance_id: 'ins_B001_001',
+        nonce: challenge.nonce,
+        timestamp: new Date().toISOString(),
+        expires_at: challenge.expires_at,
+        intent: 'PROFILE_READ',
+        capability_digest: 'sha256:digest',
+        identity_version: 5,
+        revocation_epoch: 3,
+        policy_epoch: 2,
+        session_epoch: 10,
+        session_pubkey: {
+          key_id: 'session_key_001',
+          algorithm: 'ed25519',
+          public_key: '', // Empty public key
+        },
+        signature: {
+          key_id: 'opk_B001_1',
+          algorithm: 'ed25519',
+          canonicalization: 'jcs',
+          value: 'some_signature_hex',
+        },
+      };
+
+      const result = await verifierWithSigCheck.verifyProof(challenge.challenge_id, proof);
+
+      expect(result.status).toBe('REJECTED');
+      expect(result.errors?.[0]?.code).toBe('INVALID_SIGNATURE');
+    });
+
+    it('should reject proof when verifySignature throws an exception', async () => {
+      const verifierWithSigCheck = new VerifierImpl(signatureVerifyingConfig);
+      const request = positiveVectors.POS001.issue_challenge_request;
+      const challenge = await verifierWithSigCheck.issueChallenge(request);
+
+      // Spy on verifySignature to throw an error
+      vi.spyOn(verifierWithSigCheck as unknown as { verifySignature: (p: Proof) => Promise<boolean> }, 'verifySignature')
+        .mockImplementation(() => Promise.reject(new Error('Crypto error')));
+
+      const proof: Proof = {
+        spec_version: '0.2',
+        proof_id: 'proof_exception',
+        challenge_id: challenge.challenge_id,
+        agent_id: 'agt_B001',
+        instance_id: 'ins_B001_001',
+        nonce: challenge.nonce,
+        timestamp: new Date().toISOString(),
+        expires_at: challenge.expires_at,
+        intent: 'PROFILE_READ',
+        capability_digest: 'sha256:digest',
+        identity_version: 5,
+        revocation_epoch: 3,
+        policy_epoch: 2,
+        session_epoch: 10,
+        session_pubkey: {
+          key_id: 'session_key_001',
+          algorithm: 'ed25519',
+          public_key: 'valid_public_key_hex',
+        },
+        signature: {
+          key_id: 'opk_B001_1',
+          algorithm: 'ed25519',
+          canonicalization: 'jcs',
+          value: 'some_signature_hex',
+        },
+      };
+
+      const result = await verifierWithSigCheck.verifyProof(challenge.challenge_id, proof);
+
+      // Exception in verifyObject should be caught and result in INVALID_SIGNATURE
+      expect(result.status).toBe('REJECTED');
+      expect(result.errors?.[0]?.code).toBe('INVALID_SIGNATURE');
+    });
+  });
 });

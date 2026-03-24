@@ -677,6 +677,102 @@ describe('Agent Client', () => {
           client.renewSession('nonexistent_session', 'EXPIRY_APPROACHING')
         ).rejects.toThrow('Session nonexistent_session not found');
       });
+
+      it('should successfully renew a session and emit session_renewed event', async () => {
+        // Setup event handler to spy on events
+        const eventHandler = vi.fn();
+        client.addEventHandler(eventHandler);
+
+        // Clear any leftover mocks and set up fresh mocks
+        mockFetch.mockReset();
+
+        // Mock identity resolution for createSession
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            schema_version: '0.2',
+            agent_id: 'peer_agent',
+            identity_version: 1,
+            operation_keys: [],
+            revocation_epoch: 1,
+            last_updated_at: '2024-01-01T00:00:00Z',
+            service_endpoints: { auth_endpoint: 'https://auth.example.com' },
+          }),
+        });
+
+        // Mock session creation
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            session_id: 'session_renew_success',
+            agent_id: 'test_agent',
+            instance_id: 'test_instance',
+            issued_at: '2024-01-01T00:00:00Z',
+            expires_at: '2024-01-01T01:00:00Z',
+            session_epoch: 1,
+            revocation_epoch: 1,
+            policy_epoch: 1,
+            sequence: 1,
+            effective_capabilities: ['cap1'],
+          }),
+        });
+
+        // Create session first
+        await client.createSession(
+          'peer_agent',
+          'peer_instance',
+          { capabilities: ['cap1'], capability_digest: 'sha256:abc' },
+          'low',
+          {
+            identity_version: 1,
+            revocation_epoch: 1,
+            policy_epoch: 1,
+            session_epoch: 1,
+            ledger_checkpoint: 'checkpoint',
+          }
+        );
+
+        // Mock successful renewal response
+        const renewedAt = '2024-01-01T01:30:00Z';
+        const newExpiresAt = '2024-01-01T02:30:00Z';
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            session_id: 'session_renew_success',
+            agent_id: 'test_agent',
+            instance_id: 'test_instance',
+            issued_at: renewedAt,
+            expires_at: newExpiresAt,
+            session_epoch: 2,
+            revocation_epoch: 1,
+            policy_epoch: 1,
+            sequence: 2,
+            effective_capabilities: ['cap1', 'cap2'],
+          }),
+        });
+
+        // Renew the session
+        const renewedSession = await client.renewSession('session_renew_success', 'EXPIRY_APPROACHING');
+
+        // Verify returned session has updated fields
+        expect(renewedSession.issued_at).toBe(renewedAt);
+        expect(renewedSession.expires_at).toBe(newExpiresAt);
+        expect(renewedSession.session_epoch).toBe(2);
+        expect(renewedSession.sequence).toBe(2);
+        expect(renewedSession.effective_capabilities).toEqual(['cap1', 'cap2']);
+        expect(renewedSession.session_status).toBe('active');
+
+        // Verify session was updated in the sessions map
+        const storedSession = client.getSession('session_renew_success');
+        expect(storedSession).toEqual(renewedSession);
+
+        // Verify session_renewed event was emitted
+        const renewedEvent = eventHandler.mock.calls.find(
+          call => call[0].type === 'session_renewed'
+        );
+        expect(renewedEvent).toBeDefined();
+        expect(renewedEvent[0].data).toEqual(renewedSession);
+      });
     });
 
     describe('terminateSession', () => {

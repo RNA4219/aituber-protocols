@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LedgerImpl, type LedgerConfig, type LedgerEvent } from '../ledger.js';
+import { generateKeyPair, signObject, canonicalize } from '../crypto.js';
 
 describe('Ledger', () => {
   let ledger: LedgerImpl;
@@ -631,6 +632,332 @@ describe('Ledger', () => {
       const agentEvents = await ledger.getAgentEvents(agentId);
       expect(agentEvents.events).toHaveLength(4);
       expect(ledger.getCheckpoint()).toBe('chk_4');
+    });
+  });
+
+  describe('getEventCount テスト', () => {
+    it('should return 0 for empty ledger', () => {
+      expect(ledger.getEventCount()).toBe(0);
+    });
+
+    it('should return correct count after adding events', async () => {
+      expect(ledger.getEventCount()).toBe(0);
+
+      await ledger.appendEvent(createValidEvent({ event_id: 'evt_count_1' }));
+      expect(ledger.getEventCount()).toBe(1);
+
+      await ledger.appendEvent(createValidEvent({ event_id: 'evt_count_2' }));
+      expect(ledger.getEventCount()).toBe(2);
+
+      await ledger.appendEvent(createValidEvent({ event_id: 'evt_count_3' }));
+      expect(ledger.getEventCount()).toBe(3);
+    });
+
+    it('should return correct count for multiple agents', async () => {
+      await ledger.appendEvent(createValidEvent({ event_id: 'evt_multi_1', agent_id: 'agt_A' }));
+      await ledger.appendEvent(createValidEvent({ event_id: 'evt_multi_2', agent_id: 'agt_B' }));
+      await ledger.appendEvent(createValidEvent({ event_id: 'evt_multi_3', agent_id: 'agt_A' }));
+
+      expect(ledger.getEventCount()).toBe(3);
+    });
+  });
+
+  describe('署名検証テスト (publicKeyProvider)', () => {
+    it('should validate event with valid signature when publicKeyProvider is configured', async () => {
+      const keyPair = await generateKeyPair();
+      const agentId = 'agt_sig_test';
+      const keyId = 'opk_sig_test';
+
+      const publicKeyProvider = vi.fn().mockResolvedValue(keyPair.publicKey);
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: keyId,
+      });
+
+      // 署名対象データを作成（signaturesフィールドを除く）
+      const { signatures: _, ...dataToSign } = baseEvent;
+      const signature = await signObject(dataToSign, keyPair.privateKey);
+
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: keyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: signature,
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(publicKeyProvider).toHaveBeenCalledWith(keyId, agentId);
+    });
+
+    it('should reject event when signature verification fails', async () => {
+      const keyPair = await generateKeyPair();
+      const otherKeyPair = await generateKeyPair();
+      const agentId = 'agt_sig_fail';
+      const keyId = 'opk_sig_fail';
+
+      const publicKeyProvider = vi.fn().mockResolvedValue(keyPair.publicKey);
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: keyId,
+      });
+
+      // 異なる鍵で署名
+      const { signatures: _, ...dataToSign } = baseEvent;
+      const signature = await signObject(dataToSign, otherKeyPair.privateKey);
+
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: keyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: signature,
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('signature verification failed');
+    });
+
+    it('should skip signature without value', async () => {
+      const keyPair = await generateKeyPair();
+      const agentId = 'agt_no_value';
+      const keyId = 'opk_no_value';
+
+      const publicKeyProvider = vi.fn().mockResolvedValue(keyPair.publicKey);
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: keyId,
+      });
+
+      // valueのない署名
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: keyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: '', // 空のvalue
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('signature verification failed');
+      // publicKeyProviderは呼ばれないはず（valueがないためスキップ）
+      expect(publicKeyProvider).not.toHaveBeenCalled();
+    });
+
+    it('should skip when publicKeyProvider returns null', async () => {
+      const keyPair = await generateKeyPair();
+      const agentId = 'agt_null_key';
+      const keyId = 'opk_null_key';
+
+      const publicKeyProvider = vi.fn().mockResolvedValue(null);
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: keyId,
+      });
+
+      const { signatures: _, ...dataToSign } = baseEvent;
+      const signature = await signObject(dataToSign, keyPair.privateKey);
+
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: keyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: signature,
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('signature verification failed');
+      expect(publicKeyProvider).toHaveBeenCalledWith(keyId, agentId);
+    });
+
+    it('should handle multiple signatures with one valid', async () => {
+      const keyPair = await generateKeyPair();
+      const otherKeyPair = await generateKeyPair();
+      const agentId = 'agt_multi_sig';
+      const validKeyId = 'opk_valid';
+      const invalidKeyId = 'opk_invalid';
+
+      const publicKeyProvider = vi.fn().mockImplementation(async (keyId: string) => {
+        if (keyId === validKeyId) {
+          return keyPair.publicKey;
+        }
+        return otherKeyPair.publicKey;
+      });
+
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: validKeyId,
+      });
+
+      const { signatures: _, ...dataToSign } = baseEvent;
+
+      // 有効な署名と無効な署名の両方を作成
+      const validSignature = await signObject(dataToSign, keyPair.privateKey);
+      const invalidSignature = await signObject(dataToSign, keyPair.privateKey); // 異なるデータとして署名
+
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: invalidKeyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: invalidSignature,
+          },
+          {
+            key_id: validKeyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: validSignature,
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should handle error from publicKeyProvider', async () => {
+      const keyPair = await generateKeyPair();
+      const agentId = 'agt_error_key';
+      const keyId = 'opk_error_key';
+
+      const publicKeyProvider = vi.fn().mockRejectedValue(new Error('Provider error'));
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: keyId,
+      });
+
+      const { signatures: _, ...dataToSign } = baseEvent;
+      const signature = await signObject(dataToSign, keyPair.privateKey);
+
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: keyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: signature,
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      // エラーが発生しても検証は継続され、最終的に失敗する
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('signature verification failed');
+    });
+
+    it('should handle error from verifyObject', async () => {
+      const agentId = 'agt_verify_error';
+      const keyId = 'opk_verify_error';
+
+      const publicKeyProvider = vi.fn().mockResolvedValue('invalid_public_key_format');
+      const configWithProvider: LedgerConfig = {
+        ...defaultConfig,
+        publicKeyProvider,
+      };
+      const ledgerWithProvider = new LedgerImpl(configWithProvider);
+
+      const baseEvent = createValidEvent({
+        agent_id: agentId,
+        producer_key_id: keyId,
+      });
+
+      const signedEvent: LedgerEvent = {
+        ...baseEvent,
+        signatures: [
+          {
+            key_id: keyId,
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: 'invalid_signature_format',
+          },
+        ],
+      };
+
+      const result = await ledgerWithProvider.validateEvent(signedEvent);
+      // verifyObjectでエラーが発生してもキャッチされ、検証は継続
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('signature verification failed');
+    });
+
+    it('should not verify signature when publicKeyProvider is not configured', async () => {
+      // publicKeyProviderが設定されていない場合、署名検証はスキップされる
+      const event = createValidEvent({
+        signatures: [
+          {
+            key_id: 'opk_no_provider',
+            algorithm: 'ed25519',
+            canonicalization: 'jcs',
+            value: 'some_signature',
+          },
+        ],
+      });
+
+      const result = await ledger.validateEvent(event);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 });

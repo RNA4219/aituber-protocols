@@ -776,12 +776,9 @@ describe('Crypto Module', () => {
       expect(isValidPublicKey(key63)).toBe(false);
     });
 
-    it('should handle odd-length hex string (65 characters) - documents truncation behavior', () => {
-      // 65 chars = 32.5 bytes - odd length hex is truncated by hexToBytes implementation
-      // This test documents the current behavior; consider if this should be rejected
+    it('should reject odd-length hex string (65 characters)', () => {
       const key65 = 'a'.repeat(65);
-      // The implementation truncates odd-length hex strings, resulting in 32 bytes
-      expect(isValidPublicKey(key65)).toBe(true);
+      expect(isValidPublicKey(key65)).toBe(false);
     });
   });
 

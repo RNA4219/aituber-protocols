@@ -26,6 +26,15 @@ import {
 import type { SessionManager, Session } from '../session-manager';
 import type { Verifier } from '../verifier';
 import type { IdentityHost, IdentityManifest } from '../identity-host';
+import { verifyObject } from '../crypto.js';
+
+// Mock the crypto module
+vi.mock('../crypto.js', () => ({
+  verifyObject: vi.fn(),
+}));
+
+// Get the mocked function with proper typing
+const mockVerifyObject = vi.mocked(verifyObject);
 
 // ============================================================================
 // Mock Factories
@@ -211,21 +220,21 @@ describe('ExchangeServer', () => {
       const message = createMessage('hello', {});
       delete (message as any).message_id;
 
-      await expect(server.handleMessage(message)).rejects.toThrow('Missing message_id');
+      await expect(server.handleMessage(message)).rejects.toThrow('Missing or invalid message_id');
     });
 
     it('should reject message without message_type', async () => {
       const message = createMessage('hello', {});
       delete (message as any).message_type;
 
-      await expect(server.handleMessage(message)).rejects.toThrow('Missing message_type');
+      await expect(server.handleMessage(message)).rejects.toThrow('Missing or invalid message_type');
     });
 
     it('should reject message without timestamp', async () => {
       const message = createMessage('hello', {});
       delete (message as any).timestamp;
 
-      await expect(server.handleMessage(message)).rejects.toThrow('Missing timestamp');
+      await expect(server.handleMessage(message)).rejects.toThrow('Missing or invalid timestamp');
     });
 
     it('should reject message with invalid protocol version', async () => {
@@ -662,6 +671,63 @@ describe('ExchangeServer', () => {
       const result = await server.handleMessage(message);
 
       expect(result).toEqual(customResponse);
+    });
+  });
+
+  describe('Signature Verification', () => {
+    it('should fail closed when active key has no public_key', async () => {
+      // Manifest with active key but no public_key property
+      const manifestWithoutPublicKey: IdentityManifest = {
+        ...mockManifest,
+        keys: [
+          {
+            key_id: 'key_no_pk',
+            scope: 'operation',
+            algorithm: 'ed25519',
+            public_key: '',  // Empty string is falsy
+            status: 'active',
+            valid_from: '2026-01-01T00:00:00Z',
+          },
+        ],
+      };
+
+      vi.mocked(mockIdentityHost.getManifest).mockResolvedValue(manifestWithoutPublicKey);
+
+      const body: HelloBody = {
+        capability_summary: { capabilities: ['cap1'], capability_digest: 'sha256:abc' },
+        identity_version: 1,
+        revocation_epoch: 1,
+      };
+
+      const message = createMessage('hello', body, { signature_or_mac: 'signature_hex' });
+      await expect(server.handleMessage(message)).rejects.toThrow('Signature verification failed');
+    });
+
+    it('should throw when signature verification fails', async () => {
+      mockVerifyObject.mockResolvedValue(false);
+
+      const body: HelloBody = {
+        capability_summary: { capabilities: ['cap1'], capability_digest: 'sha256:abc' },
+        identity_version: 1,
+        revocation_epoch: 1,
+      };
+
+      const message = createMessage('hello', body, { signature_or_mac: 'invalid_signature' });
+
+      await expect(server.handleMessage(message)).rejects.toThrow('Signature verification failed');
+    });
+
+    it('should fail closed when other error occurs during signature verification', async () => {
+      mockVerifyObject.mockRejectedValue(new Error('Network error'));
+
+      const body: HelloBody = {
+        capability_summary: { capabilities: ['cap1'], capability_digest: 'sha256:abc' },
+        identity_version: 1,
+        revocation_epoch: 1,
+      };
+
+      const message = createMessage('hello', body, { signature_or_mac: 'signature_hex' });
+      await expect(server.handleMessage(message)).rejects.toThrow('Signature verification failed');
     });
   });
 });
