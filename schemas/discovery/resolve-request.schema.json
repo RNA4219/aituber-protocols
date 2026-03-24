@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/resolve-request.schema.json",
+  "title": "Identity Resolution Request",
+  "description": "Request to resolve an agent's identity manifest from a platform binding",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "discovery_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "platform_type": {
+          "type": "string",
+          "enum": ["discord", "youtube", "x", "twitter", "tiktok", "twitch", "other"]
+        },
+        "platform_account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_handle": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["platform_type", "platform_account_id", "display_handle"]
+    },
+    "canonical_hint": {
+      "type": "string",
+      "format": "uri",
+      "description": "Hint URL for the canonical identity manifest location"
+    },
+    "required_freshness": {
+      "type": "string",
+      "enum": ["LOW", "HIGH"],
+      "default": "LOW",
+      "description": "Required freshness level for the identity resolution"
+    }
+  },
+  "required": ["discovery_source", "canonical_hint", "required_freshness"]
+}

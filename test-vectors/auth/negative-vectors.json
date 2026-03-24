@@ -1,0 +1,565 @@
+{
+  "$schema": "https://example.com/schemas/test-vectors/negative-vectors.schema.json",
+  "schema_version": "0.2",
+  "description": "Negative test vectors for AITuber authentication protocol - failure and rejection scenarios",
+  "vectors": [
+    {
+      "id": "NEG-001",
+      "name": "invalid_signature",
+      "description": "Authentication rejected due to invalid proof signature",
+      "scenario": "Agent provides proof with invalid or corrupted signature",
+      "input": {
+        "challenge": {
+          "challenge_id": "chl_20260324_neg001",
+          "target_agent_id": "agt_B001",
+          "nonce": "nonce_invalid_sig",
+          "issued_at": "2026-03-24T12:40:00Z",
+          "expires_at": "2026-03-24T12:41:00Z"
+        },
+        "proof": {
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "nonce": "nonce_invalid_sig",
+          "timestamp": "2026-03-24T12:40:15Z",
+          "expires_at": "2026-03-24T12:41:00Z",
+          "intent": "PROFILE_READ",
+          "signature": "invalid_or_corrupted_signature_hex"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "INVALID_SIGNATURE",
+          "message": "Proof signature verification failed",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-002",
+      "name": "nonce_expired",
+      "description": "Authentication rejected due to expired nonce",
+      "scenario": "Proof submitted after nonce expiration time",
+      "input": {
+        "challenge": {
+          "challenge_id": "chl_20260324_neg002",
+          "target_agent_id": "agt_B001",
+          "nonce": "nonce_expired_test",
+          "issued_at": "2026-03-24T12:00:00Z",
+          "expires_at": "2026-03-24T12:01:00Z"
+        },
+        "proof": {
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "nonce": "nonce_expired_test",
+          "timestamp": "2026-03-24T12:02:00Z",
+          "expires_at": "2026-03-24T12:01:00Z",
+          "signature": "valid_signature_hex"
+        },
+        "current_time": "2026-03-24T12:02:30Z"
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "NONCE_EXPIRED",
+          "message": "Challenge nonce has expired",
+          "retryable": true,
+          "risk_level": "LOW"
+        }
+      }
+    },
+    {
+      "id": "NEG-003",
+      "name": "timestamp_invalid_clock_skew",
+      "description": "Authentication rejected due to excessive clock skew",
+      "scenario": "Proof timestamp exceeds allowed clock skew from verifier",
+      "input": {
+        "verifier_time": "2026-03-24T12:40:00Z",
+        "proof_timestamp": "2026-03-24T12:38:00Z",
+        "max_allowed_skew_seconds": 120,
+        "actual_skew_seconds": 180,
+        "proof": {
+          "agent_id": "agt_B001",
+          "nonce": "nonce_neg003",
+          "timestamp": "2026-03-24T12:38:00Z",
+          "signature": "valid_signature_hex"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "TIMESTAMP_INVALID",
+          "message": "Timestamp exceeds allowed clock skew threshold",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "observed_skew_seconds": 180,
+            "max_allowed_skew_seconds": 120
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-004",
+      "name": "key_revoked",
+      "description": "Authentication rejected because operation key is revoked",
+      "scenario": "Agent attempts authentication with revoked operation key",
+      "input": {
+        "key_status": {
+          "key_id": "opk_B001_1",
+          "status": "REVOKED",
+          "revoked_at": "2026-03-24T11:00:00Z",
+          "revocation_reason": "compromised"
+        },
+        "proof": {
+          "agent_id": "agt_B001",
+          "nonce": "nonce_neg004",
+          "timestamp": "2026-03-24T12:40:00Z",
+          "signature": "signature_from_revoked_key"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "KEY_REVOKED",
+          "message": "Operation key has been revoked",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "key_id": "opk_B001_1",
+            "revoked_at": "2026-03-24T11:00:00Z"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-005",
+      "name": "binding_mismatch",
+      "description": "Authentication rejected due to platform binding mismatch",
+      "scenario": "Discovery source does not match any platform binding in identity manifest",
+      "input": {
+        "discovery_source": {
+          "platform_type": "discord",
+          "platform_account_id": "9999999999",
+          "display_handle": "fake_agent_b"
+        },
+        "identity_manifest": {
+          "agent_id": "agt_B001",
+          "platform_bindings": [
+            {
+              "platform_type": "discord",
+              "platform_account_id": "1234567890",
+              "display_handle": "agent_b",
+              "binding_status": "ACTIVE"
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "resolution_status": "BINDING_MISMATCH",
+        "error": {
+          "code": "BINDING_MISMATCH",
+          "message": "Discovery source does not match any verified platform binding",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "expected_platform_account_id": "1234567890",
+            "provided_platform_account_id": "9999999999"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-006",
+      "name": "policy_mismatch",
+      "description": "Authentication rejected due to policy epoch mismatch",
+      "scenario": "Proof contains outdated policy epoch",
+      "input": {
+        "challenge": {
+          "challenge_id": "chl_20260324_neg006",
+          "target_agent_id": "agt_B001",
+          "nonce": "nonce_neg006",
+          "issued_at": "2026-03-24T12:40:00Z",
+          "policy_epoch": 5
+        },
+        "proof": {
+          "agent_id": "agt_B001",
+          "nonce": "nonce_neg006",
+          "timestamp": "2026-03-24T12:40:15Z",
+          "policy_epoch": 3,
+          "signature": "valid_signature_hex"
+        },
+        "current_policy_epoch": 5
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "POLICY_MISMATCH",
+          "message": "Policy epoch mismatch - policy has been updated",
+          "retryable": true,
+          "risk_level": "HIGH",
+          "details": {
+            "proof_policy_epoch": 3,
+            "current_policy_epoch": 5
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-007",
+      "name": "stale_revocation_cache_high_risk",
+      "description": "High-risk operation rejected due to stale revocation cache",
+      "scenario": "High-risk operation fails because fresh revocation proof cannot be obtained",
+      "input": {
+        "revocation_cache": {
+          "cached_at": "2026-03-24T11:00:00Z",
+          "soft_ttl_seconds": 15,
+          "hard_ttl_seconds": 120,
+          "current_time": "2026-03-24T12:40:00Z"
+        },
+        "cache_status": "HARD_STALE",
+        "requested_operation": {
+          "type": "COLLAB_INVITE",
+          "risk_level": "HIGH"
+        },
+        "re_fetch_succeeded": false
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "STALE_REVOCATION_CACHE",
+          "message": "Fresh revocation proof required for high-risk operation but cache is stale and re-fetch failed",
+          "retryable": true,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-008",
+      "name": "session_epoch_old",
+      "description": "Operation rejected because session epoch is outdated",
+      "scenario": "Session becomes invalid due to revocation epoch increase",
+      "input": {
+        "session": {
+          "session_id": "ses_20260324_B001_old",
+          "agent_id": "agt_B001",
+          "session_epoch": 10,
+          "revocation_epoch": 3
+        },
+        "current_revocation_epoch": 5,
+        "current_session_epoch": 15
+      },
+      "expected_output": {
+        "operation_status": "REJECTED",
+        "session_status": "TERMINATED",
+        "error": {
+          "code": "SESSION_EPOCH_OLD",
+          "message": "Session epoch is outdated - re-authentication required",
+          "retryable": true,
+          "risk_level": "HIGH",
+          "details": {
+            "session_epoch": 10,
+            "current_session_epoch": 15,
+            "revocation_epoch_changed": true
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-009",
+      "name": "identity_rollback_detected",
+      "description": "Authentication rejected due to identity version rollback",
+      "scenario": "Received identity version is lower than previously observed",
+      "input": {
+        "last_observed_identity_version": 10,
+        "received_identity_version": 7,
+        "agent_id": "agt_B001"
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "IDENTITY_ROLLBACK_DETECTED",
+          "message": "Identity version regression detected - possible rollback attack",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "last_observed_version": 10,
+            "received_version": 7
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-010",
+      "name": "agent_quarantined_high_risk",
+      "description": "High-risk operation rejected for quarantined agent",
+      "scenario": "Agent in quarantine cannot perform high-risk operations",
+      "input": {
+        "agent_status": {
+          "agent_id": "agt_B001",
+          "status": "QUARANTINED",
+          "quarantine_status": "HARD",
+          "quarantine_reason": "OPERATION_KEY_COMPROMISED",
+          "quarantined_at": "2026-03-24T11:00:00Z"
+        },
+        "requested_operation": {
+          "type": "COLLAB_INVITE",
+          "risk_level": "HIGH"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "AGENT_QUARANTINED",
+          "message": "Agent is in quarantine - high-risk operations not allowed",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "quarantine_status": "HARD",
+            "quarantine_reason": "OPERATION_KEY_COMPROMISED"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-011",
+      "name": "invalid_manifest_signature",
+      "description": "Identity resolution rejected due to invalid manifest signature",
+      "scenario": "Identity manifest signature verification fails",
+      "input": {
+        "identity_manifest": {
+          "agent_id": "agt_B001",
+          "manifest_signature": "invalid_signature_hex"
+        },
+        "signature_verification": {
+          "valid": false
+        }
+      },
+      "expected_output": {
+        "resolution_status": "INVALID_MANIFEST_SIGNATURE",
+        "error": {
+          "code": "INVALID_MANIFEST_SIGNATURE",
+          "message": "Identity manifest signature verification failed",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-012",
+      "name": "capability_digest_mismatch",
+      "description": "Authentication rejected due to capability digest mismatch",
+      "scenario": "Proof capability digest does not match actual capabilities",
+      "input": {
+        "proof": {
+          "agent_id": "agt_B001",
+          "nonce": "nonce_neg012",
+          "timestamp": "2026-03-24T12:40:00Z",
+          "capability_digest": "sha256:digest_claimed"
+        },
+        "actual_capabilities": ["chat.basic", "profile.read"],
+        "calculated_digest": "sha256:digest_actual"
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "CAPABILITY_DIGEST_MISMATCH",
+          "message": "Claimed capability digest does not match actual capabilities",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-013",
+      "name": "high_risk_without_fresh_proof",
+      "description": "High-risk operation rejected without fresh revocation proof",
+      "scenario": "High-risk operation attempted without obtaining fresh revocation proof",
+      "input": {
+        "operation": {
+          "type": "MEMORY_EXCHANGE",
+          "risk_level": "HIGH"
+        },
+        "freshness_status": "STALE",
+        "fresh_revocation_proof_obtained": false
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "HIGH_RISK_REQUIRES_FRESH_PROOF",
+          "message": "High-risk operation requires fresh revocation proof",
+          "retryable": true,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-014",
+      "name": "conflicting_revocation_state",
+      "description": "Operation rejected due to conflicting revocation state",
+      "scenario": "Different sources report conflicting agent status",
+      "input": {
+        "source_a": {
+          "agent_status": "ACTIVE",
+          "source": "manifest"
+        },
+        "source_b": {
+          "agent_status": "QUARANTINED",
+          "source": "revocation_status"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "CONFLICTING_REVOCATION_STATE",
+          "message": "Conflicting agent status from different sources",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "conflict_sources": ["manifest", "revocation_status"]
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-015",
+      "name": "ledger_checkpoint_old",
+      "description": "Operation rejected due to old ledger checkpoint",
+      "scenario": "Received ledger checkpoint is older than known checkpoint",
+      "input": {
+        "known_ledger_checkpoint": "chk_1001",
+        "received_ledger_checkpoint": "chk_0995"
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "LEDGER_CHECKPOINT_OLD",
+          "message": "Ledger checkpoint regression detected - possible split-view or rollback",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "known_checkpoint": "chk_1001",
+            "received_checkpoint": "chk_0995"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-016",
+      "name": "revocation_epoch_regression",
+      "description": "Operation rejected due to revocation epoch regression",
+      "scenario": "Received revocation epoch is lower than previously observed",
+      "input": {
+        "last_observed_revocation_epoch": 8,
+        "received_revocation_epoch": 5
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "REVOCATION_EPOCH_REGRESSION",
+          "message": "Revocation epoch regression detected - possible rollback attack",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-017",
+      "name": "session_terminated",
+      "description": "Operation rejected because session is terminated",
+      "scenario": "Attempt to use a terminated session",
+      "input": {
+        "session": {
+          "session_id": "ses_20260324_B001_term",
+          "agent_id": "agt_B001",
+          "session_status": "TERMINATED",
+          "termination_reason": "REVOCATION_EPOCH_INCREASED"
+        }
+      },
+      "expected_output": {
+        "operation_status": "REJECTED",
+        "error": {
+          "code": "SESSION_TERMINATED",
+          "message": "Session has been terminated",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "termination_reason": "REVOCATION_EPOCH_INCREASED"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEG-018",
+      "name": "untrusted_redirect",
+      "description": "Identity resolution rejected due to untrusted redirect",
+      "scenario": "Identity manifest redirects to untrusted location",
+      "input": {
+        "original_url": "https://agent-b.example.com/agent.json",
+        "redirect_url": "https://untrusted-domain.com/agent.json",
+        "redirect_trust_policy": "SAME_ORIGIN_REQUIRED"
+      },
+      "expected_output": {
+        "resolution_status": "UNTRUSTED_REDIRECT",
+        "error": {
+          "code": "UNTRUSTED_REDIRECT",
+          "message": "Identity manifest redirects to untrusted location",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-019",
+      "name": "first_seen_high_risk_immediate_reject",
+      "description": "High-risk operation rejected for first-seen peer without evidence",
+      "scenario": "First contact with agent attempting high-risk operation is rejected",
+      "input": {
+        "known_version_vector": null,
+        "requested_risk_level": "HIGH",
+        "watcher_evidence_refs": [],
+        "mirror_checkpoint_refs": []
+      },
+      "expected_output": {
+        "bootstrap_status": "BOOTSTRAP_REJECTED",
+        "error": {
+          "code": "FIRST_SEEN_HIGH_RISK_DENIED",
+          "message": "High-risk operations not allowed for first-seen peer without additional evidence",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "NEG-020",
+      "name": "recovery_sequence_invalid",
+      "description": "Recovery operation rejected due to invalid sequence",
+      "scenario": "Recovery attempted without completing required steps",
+      "input": {
+        "recovery_state": {
+          "recovery_id": "rcv_001",
+          "status": "INITIATED",
+          "required_next_steps": [
+            "REVOKE_COMPROMISED_KEYS",
+            "RECONFIRM_BINDINGS"
+          ],
+          "completed_steps": []
+        },
+        "attempted_action": "COMPLETE_RECOVERY"
+      },
+      "expected_output": {
+        "recovery_status": "REJECTED",
+        "error": {
+          "code": "RECOVERY_SEQUENCE_INVALID",
+          "message": "Recovery sequence incomplete - required steps not completed",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "missing_steps": ["REVOKE_COMPROMISED_KEYS", "RECONFIRM_BINDINGS"]
+          }
+        }
+      }
+    }
+  ]
+}

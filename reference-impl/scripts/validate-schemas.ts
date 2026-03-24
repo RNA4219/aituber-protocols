@@ -80,6 +80,15 @@ const SCHEMA_DETECTION: Record<string, string[]> = {
   'auth/session.schema.json': ['session_id', 'session_epoch'],
   'auth/revocation-status.schema.json': ['agent_status', 'quarantine_status', 'high_risk_eligible'],
   'ledger/event-envelope.schema.json': ['event_id', 'event_type', 'payload', 'sequence', 'payload_hash'],
+  // Discovery flow schemas
+  'discovery/resolve-request.schema.json': ['discovery_source', 'canonical_hint', 'required_freshness'],
+  'discovery/resolve-response.schema.json': ['resolution_status', 'identity_manifest_url', 'binding_match'],
+  'discovery/freshness-check-request.schema.json': ['known_revocation_epoch', 'known_identity_version', 'known_ledger_checkpoint'],
+  'discovery/freshness-check-response.schema.json': ['freshness_status', 'current_agent_status', 'current_quarantine_level', 'current_revocation_epoch'],
+  'discovery/challenge-request.schema.json': ['requesting_verifier_id', 'target_agent_id', 'target_instance_id', 'required_risk_level', 'session_pubkey', 'nonce_ttl_seconds'],
+  'discovery/proof-submission-request.schema.json': ['challenge_id', 'proof'],
+  'discovery/verification-response.schema.json': ['verification_status', 'freshness_status', 'capability_status', 'version_check'],
+  'discovery/session-request.schema.json': ['verified_agent_id', 'peer_session_pubkey', 'version_vector', 'capability_summary'],
 };
 
 // Unique identifiers that definitively identify a schema
@@ -89,6 +98,13 @@ const UNIQUE_IDENTIFIERS: Record<string, string> = {
   'manifest_version': 'auth/identity-manifest.schema.json',
   'agent_status': 'auth/revocation-status.schema.json',
   'event_type': 'ledger/event-envelope.schema.json',
+  // Discovery flow unique identifiers
+  'discovery_source': 'discovery/resolve-request.schema.json',
+  'resolution_status': 'discovery/resolve-response.schema.json',
+  'known_ledger_checkpoint': 'discovery/freshness-check-request.schema.json',
+  'current_agent_status': 'discovery/freshness-check-response.schema.json',
+  'requesting_verifier_id': 'discovery/challenge-request.schema.json',
+  'verification_status': 'discovery/verification-response.schema.json',
 };
 
 /**
@@ -172,6 +188,20 @@ function loadAllSchemas(ajv: Ajv): Map<string, object> {
       ajv.addSchema(schema, schemaId);
       schemaMap.set(`exchange/${file}`, schema);
       console.log(`${colors.cyan}Loaded:${colors.reset} exchange/${file}`);
+    }
+  }
+
+  // Discovery schemas
+  const discoveryDir = path.join(SCHEMAS_DIR, 'discovery');
+  if (fs.existsSync(discoveryDir)) {
+    const discoveryFiles = fs.readdirSync(discoveryDir).filter(f => f.endsWith('.schema.json'));
+    for (const file of discoveryFiles) {
+      const schemaPath = path.join(discoveryDir, file);
+      const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
+      const schemaId = schema.$id || `discovery/${file}`;
+      ajv.addSchema(schema, schemaId);
+      schemaMap.set(`discovery/${file}`, schema);
+      console.log(`${colors.cyan}Loaded:${colors.reset} discovery/${file}`);
     }
   }
 

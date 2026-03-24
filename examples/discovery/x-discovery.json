@@ -1,0 +1,292 @@
+{
+  "$comment": "X (Twitter) Platform Discovery Flow Example",
+  "flow_id": "x_discovery_001",
+  "description": "XからのAgent発見フロー - プロフィール欄のリンクから正本Identity Manifestを解決し、認証まで完了する流れ",
+  "spec_version": "0.2",
+  "scenario": "success",
+  "steps": [
+    {
+      "step_number": 1,
+      "phase": "discovery",
+      "description": "Xプロフィール欄から正本URLを発見",
+      "platform_context": {
+        "platform_type": "x",
+        "platform_account_id": "1892345678901234567",
+        "display_handle": "@kizuna_ai_example",
+        "profile_url": "https://x.com/kizuna_ai_example",
+        "discovery_method": "profile_link",
+        "link_found": {
+          "display_text": "aituber://id/agt_kizuna_ai",
+          "resolved_url": "https://identity.example.com/.well-known/aituber/agt_kizuna_ai.json",
+          "link_type": "custom_scheme_resolved"
+        }
+      }
+    },
+    {
+      "step_number": 2,
+      "phase": "identity_resolution",
+      "description": "正本Identity Manifestの取得と署名検証",
+      "request": {
+        "discovery_source": {
+          "platform_type": "x",
+          "platform_account_id": "1892345678901234567",
+          "display_handle": "@kizuna_ai_example"
+        },
+        "canonical_hint": "https://identity.example.com/.well-known/aituber/agt_kizuna_ai.json",
+        "required_freshness": "LOW"
+      },
+      "response": {
+        "resolution_status": "RESOLVED",
+        "identity_manifest_url": "https://identity.example.com/.well-known/aituber/agt_kizuna_ai.json",
+        "identity_manifest": {
+          "spec_version": "0.2",
+          "manifest_version": 3,
+          "controller_id": "ctrl_kizuna_inc",
+          "agent_id": "agt_kizuna_ai",
+          "persona_id": "per_kizuna_v1",
+          "persona_profile_hash": "sha256:a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+          "identity_version": 12,
+          "updated_at": "2026-03-24T10:00:00Z",
+          "ledger_ref": "https://ledger.example.com/agents/agt_kizuna_ai",
+          "revocation_ref": "https://revocation.example.com/status/agt_kizuna_ai",
+          "keys": [
+            {
+              "key_id": "opk_kizuna_001",
+              "scope": "operation",
+              "algorithm": "ed25519",
+              "public_key": "MCowBQYDK2VwAyEAabc123def456ghi789jkl012mno345pqr678stu901vwx234yz=",
+              "status": "active",
+              "valid_from": "2026-01-01T00:00:00Z"
+            }
+          ],
+          "platform_bindings": [
+            {
+              "platform_type": "x",
+              "platform_account_id": "1892345678901234567",
+              "display_handle": "@kizuna_ai_example",
+              "binding_status": "active",
+              "verified_at": "2026-03-20T08:00:00Z",
+              "bound_by_key_id": "opk_kizuna_001",
+              "binding_version": 2
+            },
+            {
+              "platform_type": "youtube",
+              "platform_account_id": "UC1234567890abcdef",
+              "display_handle": "KizunaAIExample",
+              "binding_status": "active",
+              "verified_at": "2026-03-20T08:05:00Z",
+              "bound_by_key_id": "opk_kizuna_001",
+              "binding_version": 1
+            }
+          ],
+          "service_endpoints": [
+            {
+              "name": "auth",
+              "url": "https://auth.example.com/kizuna_ai",
+              "kind": "challenge_response"
+            },
+            {
+              "name": "exchange",
+              "url": "https://exchange.example.com/kizuna_ai",
+              "kind": "message_exchange"
+            }
+          ],
+          "capability_summary": [
+            "chat.basic",
+            "profile.read",
+            "status.share",
+            "collab.invite",
+            "collab.accept"
+          ],
+          "policy_ref": "https://policy.example.com/kizuna_ai/v4",
+          "signatures": [
+            {
+              "key_id": "opk_kizuna_001",
+              "algorithm": "ed25519",
+              "canonicalization": "jcs",
+              "value": "signature_value_abc123..."
+            }
+          ]
+        },
+        "binding_match": true,
+        "warnings": []
+      }
+    },
+    {
+      "step_number": 3,
+      "phase": "challenge_issuance",
+      "description": "VerifierによるChallenge発行",
+      "request": {
+        "requesting_verifier_id": "agt_verifier_agent",
+        "target_agent_id": "agt_kizuna_ai",
+        "target_instance_id": "ins_kizuna_live_001",
+        "intent": "COLLAB_INVITE",
+        "required_capabilities": ["collab.invite"],
+        "required_risk_level": "high",
+        "session_pubkey": "ephemeral_pubkey_xyz789...",
+        "nonce_ttl_seconds": 60
+      },
+      "response": {
+        "spec_version": "0.2",
+        "challenge_id": "chl_20260324_001",
+        "verifier_id": "agt_verifier_agent",
+        "target_agent_id": "agt_kizuna_ai",
+        "target_instance_id": "ins_kizuna_live_001",
+        "nonce": "nonce_abc123def456ghi789",
+        "issued_at": "2026-03-24T12:35:00Z",
+        "expires_at": "2026-03-24T12:36:00Z",
+        "intent": "COLLAB_INVITE",
+        "risk_level": "high",
+        "requested_capabilities": ["collab.invite"],
+        "epochs": {
+          "identity_version": 12,
+          "revocation_epoch": 8,
+          "policy_epoch": 4,
+          "session_epoch": 29,
+          "ledger_checkpoint": "chk_20260324_1001"
+        },
+        "signature": {
+          "key_id": "opk_verifier_001",
+          "algorithm": "ed25519",
+          "canonicalization": "jcs",
+          "value": "challenge_sig_456..."
+        }
+      }
+    },
+    {
+      "step_number": 4,
+      "phase": "proof_submission",
+      "description": "AgentによるProof返却",
+      "request": {
+        "challenge_id": "chl_20260324_001",
+        "proof": {
+          "spec_version": "0.2",
+          "proof_id": "prf_20260324_001",
+          "challenge_id": "chl_20260324_001",
+          "agent_id": "agt_kizuna_ai",
+          "instance_id": "ins_kizuna_live_001",
+          "nonce": "nonce_abc123def456ghi789",
+          "timestamp": "2026-03-24T12:35:10Z",
+          "expires_at": "2026-03-24T12:36:00Z",
+          "intent": "COLLAB_INVITE",
+          "capability_digest": "sha256:capability_hash_123...",
+          "identity_version": 12,
+          "revocation_epoch": 8,
+          "policy_epoch": 4,
+          "session_epoch": 29,
+          "session_pubkey": {
+            "key_id": "spk_kizuna_001",
+            "algorithm": "ed25519",
+            "public_key": "target_session_pubkey_789abc...",
+            "valid_until": "2026-03-24T13:00:00Z"
+          },
+          "signature": {
+            "key_id": "opk_kizuna_001",
+            "algorithm": "ed25519",
+            "canonicalization": "jcs",
+            "value": "proof_signature_789xyz..."
+          }
+        }
+      }
+    },
+    {
+      "step_number": 5,
+      "phase": "proof_verification",
+      "description": "Proofの検証と結果",
+      "response": {
+        "verification_status": "VERIFIED",
+        "verified_agent_id": "agt_kizuna_ai",
+        "verified_instance_id": "ins_kizuna_live_001",
+        "risk_level": "high",
+        "freshness_status": "FRESH",
+        "capability_status": "MATCHED",
+        "version_check": {
+          "rollback_detected": false,
+          "epoch_mismatch": false,
+          "session_epoch_old": false,
+          "policy_mismatch": false
+        },
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "step_number": 6,
+      "phase": "session_creation",
+      "description": "認証済みセッションの確立",
+      "request": {
+        "verified_agent_id": "agt_kizuna_ai",
+        "verified_instance_id": "ins_kizuna_live_001",
+        "peer_session_pubkey": "target_session_pubkey_789abc...",
+        "risk_level": "high",
+        "capability_summary": {
+          "capabilities": ["chat.basic", "collab.invite"],
+          "capability_digest": "sha256:capability_hash_123..."
+        },
+        "version_vector": {
+          "identity_version": 12,
+          "revocation_epoch": 8,
+          "policy_epoch": 4,
+          "session_epoch": 30,
+          "ledger_checkpoint": "chk_20260324_1001"
+        }
+      },
+      "response": {
+        "spec_version": "0.2",
+        "session_id": "ses_20260324_kizuna_001",
+        "agent_id": "agt_kizuna_ai",
+        "instance_id": "ins_kizuna_live_001",
+        "issued_at": "2026-03-24T12:35:12Z",
+        "expires_at": "2026-03-24T12:40:12Z",
+        "session_epoch": 30,
+        "revocation_epoch": 8,
+        "policy_epoch": 4,
+        "identity_version": 12,
+        "sequence": 0,
+        "capabilities": ["chat.basic", "collab.invite"],
+        "risk_level": "high",
+        "status": "active",
+        "ledger_checkpoint": "chk_20260324_1001",
+        "signature": {
+          "key_id": "opk_verifier_001",
+          "algorithm": "ed25519",
+          "canonicalization": "jcs",
+          "value": "session_signature_abc123..."
+        }
+      }
+    },
+    {
+      "step_number": 7,
+      "phase": "exchange",
+      "description": "Exchange層への移行 - Hello送信",
+      "message": {
+        "protocol_version": "0.2",
+        "message_id": "msg_20260324_001",
+        "message_type": "hello",
+        "timestamp": "2026-03-24T12:35:15Z",
+        "agent_id": "agt_kizuna_ai",
+        "instance_id": "ins_kizuna_live_001",
+        "session_id": "ses_20260324_kizuna_001",
+        "sequence": 1,
+        "signature_or_mac": "mac_value_123...",
+        "body": {
+          "display_name": "Kizuna AI Example",
+          "capability_summary": {
+            "capabilities": ["chat.basic", "collab.invite"],
+            "capability_digest": "sha256:capability_hash_123..."
+          },
+          "identity_version": 12,
+          "revocation_epoch": 8
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_duration_ms": 4500,
+    "status": "SUCCESS",
+    "platform_binding_verified": true,
+    "manifest_signature_valid": true,
+    "freshness_check_passed": true,
+    "session_established": true
+  }
+}

@@ -163,7 +163,7 @@ app.get('/events', async (c) => {
 
       const response: CheckpointResponse = {
         checkpoint,
-        event_count: 0, // TODO: 実装
+        event_count: ledger.getEventCount(),
         last_updated_at: new Date().toISOString(),
       };
 
@@ -195,7 +195,7 @@ app.get('/checkpoint', async (c) => {
 
     const response: CheckpointResponse = {
       checkpoint,
-      event_count: 0, // TODO: 実装
+      event_count: ledger.getEventCount(),
       last_updated_at: new Date().toISOString(),
     };
 

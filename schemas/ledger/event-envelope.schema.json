@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/ledger/event-envelope.schema.json",
+  "title": "Ledger Event Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "agent.created",
+        "key.added",
+        "key.revoked",
+        "key.rotated",
+        "binding.added",
+        "binding.updated",
+        "binding.removed",
+        "compromise.reported",
+        "agent.quarantined",
+        "recovery.initiated",
+        "recovery.completed",
+        "policy.updated"
+      ]
+    },
+    "agent_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "controller_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "event_time": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "recorded_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "producer_key_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "sequence": {
+      "$ref": "../core/common.schema.json#/$defs/positiveInteger"
+    },
+    "prev_event_hash": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "payload_hash": {
+      "$ref": "../core/common.schema.json#/$defs/hashString"
+    },
+    "ledger_checkpoint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "payload": {
+      "type": "object"
+    },
+    "signatures": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/signature"
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "spec_version",
+    "schema_version",
+    "event_id",
+    "event_type",
+    "agent_id",
+    "controller_id",
+    "event_time",
+    "recorded_at",
+    "producer_key_id",
+    "sequence",
+    "payload_hash",
+    "ledger_checkpoint",
+    "payload",
+    "signatures"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "key.revoked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "./key-revoked.schema.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "binding.updated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "./binding-updated.schema.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "compromise.reported"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "./compromise-reported.schema.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "agent.quarantined"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "./agent-quarantined.schema.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "recovery.initiated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "./recovery-initiated.schema.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "recovery.completed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "./recovery-completed.schema.json"
+          }
+        }
+      }
+    }
+  ]
+}

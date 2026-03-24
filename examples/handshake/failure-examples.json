@@ -1,0 +1,419 @@
+{
+  "$comment": "Authentication Failure Examples - AITuber Protocol v0.2-draft",
+  "description": "Examples of failed authentication attempts with error codes and explanations",
+  "failure_cases": [
+    {
+      "case_id": "FAIL-001",
+      "name": "invalid_signature",
+      "category": "signature_verification",
+      "description": "The signature on the proof does not verify against the claimed key",
+      "scenario": "An attacker attempts to forge Alice's signature",
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-sig-001",
+        "target_agent_id": "agent-alice-main",
+        "nonce": "n0nc3_f41l_s1g_20240315t120000z",
+        "risk_level": "low"
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-forged-001",
+        "challenge_id": "ch-20240315-fail-sig-001",
+        "agent_id": "agent-alice-main",
+        "nonce": "n0nc3_f41l_s1g_20240315t120000z",
+        "signature": {
+          "key_id": "key-alice-operation-003",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "INVALID_FORGED_SIGNATURE_abc123..."
+        }
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "INVALID_SIGNATURE",
+        "error_message": "Signature verification failed for key key-alice-operation-003",
+        "logged_to_ledger": true,
+        "recommended_action": "potential_impersonation_attempt"
+      }
+    },
+    {
+      "case_id": "FAIL-002",
+      "name": "nonce_expired",
+      "category": "temporal_validation",
+      "description": "The proof is submitted after the nonce has expired",
+      "scenario": "Alice takes too long to respond to the challenge",
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-expire-002",
+        "target_agent_id": "agent-alice-main",
+        "nonce": "n0nc3_3xpir3d_20240315t130000z",
+        "issued_at": "2024-03-15T13:00:00Z",
+        "expires_at": "2024-03-15T13:05:00Z"
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-late-002",
+        "challenge_id": "ch-20240315-fail-expire-002",
+        "timestamp": "2024-03-15T13:06:30Z",
+        "comment": "Proof submitted 90 seconds after nonce expiration"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "NONCE_EXPIRED",
+        "error_message": "Challenge nonce expired at 2024-03-15T13:05:00Z",
+        "logged_to_ledger": false,
+        "recommended_action": "request_new_challenge"
+      }
+    },
+    {
+      "case_id": "FAIL-003",
+      "name": "key_revoked",
+      "category": "key_status",
+      "description": "The key used to sign the proof has been revoked",
+      "scenario": "Alice's operation key was revoked due to suspected compromise",
+      "key_status": {
+        "key_id": "key-alice-operation-002",
+        "status": "revoked",
+        "revoked_at": "2024-03-15T10:30:00Z",
+        "revocation_reason": "compromise_suspected"
+      },
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-revoked-003",
+        "target_agent_id": "agent-alice-main",
+        "risk_level": "low"
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-revoked-key-003",
+        "signature": {
+          "key_id": "key-alice-operation-002",
+          "value": "sig_with_revoked_key..."
+        }
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "KEY_REVOKED",
+        "error_message": "Key key-alice-operation-002 was revoked at 2024-03-15T10:30:00Z",
+        "logged_to_ledger": true,
+        "recommended_action": "potential_key_compromise_use_of_revoked_key",
+        "session_action": "terminate_any_active_sessions_using_this_key"
+      }
+    },
+    {
+      "case_id": "FAIL-004",
+      "name": "stale_revocation_cache_high_risk",
+      "category": "freshness_validation",
+      "description": "High-risk operation attempted with stale revocation cache",
+      "scenario": "Alice attempts high-risk collab acceptance but revocation proof is stale",
+      "risk_level": "high",
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-stale-004",
+        "risk_level": "high",
+        "intent": "collab.accept"
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-stale-cache-004",
+        "attached_revocation_proof": {
+          "obtained_at": "2024-03-15T14:00:00Z",
+          "fresh_until": "2024-03-15T14:00:30Z",
+          "current_time": "2024-03-15T14:05:00Z",
+          "stale_by_seconds": 270
+        }
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "STALE_REVOCATION_CACHE",
+        "error_message": "Revocation proof is stale for high-risk operation. Freshness expired at 2024-03-15T14:00:30Z",
+        "logged_to_ledger": true,
+        "recommended_action": "obtain_fresh_revocation_proof_and_retry",
+        "fail_closed": true
+      },
+      "comparison": {
+        "low_risk_behavior": "For low-risk operations, stale cache may be acceptable with degraded capability",
+        "high_risk_behavior": "For high-risk operations, stale cache results in mandatory rejection"
+      }
+    },
+    {
+      "case_id": "FAIL-005",
+      "name": "binding_mismatch",
+      "category": "binding_validation",
+      "description": "Platform binding in proof does not match verified bindings in identity manifest",
+      "scenario": "Proof claims binding to a platform account that is not verified in the manifest",
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-binding-005",
+        "target_agent_id": "agent-alice-main"
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-binding-mismatch-005",
+        "claimed_binding": {
+          "platform_type": "x",
+          "platform_account_id": "@fake_alice_account",
+          "binding_status": "active"
+        }
+      },
+      "verified_binding": {
+        "platform_type": "x",
+        "platform_account_id": "@official_alice_vtuber",
+        "binding_status": "active",
+        "binding_version": 3
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "BINDING_MISMATCH",
+        "error_message": "Claimed binding @fake_alice_account does not match verified binding @official_alice_vtuber",
+        "logged_to_ledger": true,
+        "recommended_action": "potential_binding_spoofing_attempt"
+      }
+    },
+    {
+      "case_id": "FAIL-006",
+      "name": "identity_rollback_detected",
+      "category": "monotonic_validation",
+      "description": "Proof contains identity_version lower than previously seen",
+      "scenario": "Potential rollback attack - proof claims older identity version",
+      "verifier_state": {
+        "max_seen_identity_version": 8,
+        "max_seen_revocation_epoch": 15,
+        "max_seen_policy_epoch": 5
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-rollback-006",
+        "identity_version": 5,
+        "revocation_epoch": 15,
+        "policy_epoch": 5,
+        "comment": "identity_version 5 < max_seen 8 indicates potential rollback"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "IDENTITY_ROLLBACK_DETECTED",
+        "error_message": "identity_version 5 is lower than previously seen version 8. Potential rollback attack.",
+        "logged_to_ledger": true,
+        "recommended_action": "security_alert_investigate_potential_rollback_attack",
+        "session_action": "consider_terminating_all_active_sessions"
+      }
+    },
+    {
+      "case_id": "FAIL-007",
+      "name": "agent_quarantined",
+      "category": "agent_state",
+      "description": "Agent is in quarantine state and cannot authenticate for high-risk operations",
+      "scenario": "Alice's agent was quarantined due to suspected compromise",
+      "agent_state": {
+        "agent_id": "agent-alice-main",
+        "state": "QUARANTINED_SOFT",
+        "reason": "operation_key_leak_suspected",
+        "entered_at": "2024-03-15T09:00:00Z"
+      },
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-quarantine-007",
+        "risk_level": "high",
+        "intent": "collab.accept"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "AGENT_QUARANTINED",
+        "error_message": "Agent agent-alice-main is in QUARANTINED_SOFT state. High-risk operations are not permitted.",
+        "logged_to_ledger": true,
+        "allowed_operations": {
+          "low_risk": "limited_with_degraded_capabilities",
+          "high_risk": "prohibited"
+        },
+        "recovery_required": "Agent must complete recovery flow before high-risk operations"
+      }
+    },
+    {
+      "case_id": "FAIL-008",
+      "name": "nonce_replay",
+      "category": "replay_protection",
+      "description": "Attempt to reuse a previously used nonce",
+      "scenario": "Attacker captures a valid proof and attempts to replay it",
+      "original_proof": {
+        "proof_id": "prf-20240315-original-008",
+        "challenge_id": "ch-20240315-origin-chal-008",
+        "nonce": "n0nc3_r3pl4y_4tt4ck_20240315",
+        "timestamp": "2024-03-15T15:00:00Z",
+        "used_at": "2024-03-15T15:00:15Z"
+      },
+      "replay_attempt": {
+        "proof_id": "prf-20240315-replay-008",
+        "challenge_id": "ch-20240315-origin-chal-008",
+        "nonce": "n0nc3_r3pl4y_4tt4ck_20240315",
+        "timestamp": "2024-03-15T15:00:00Z",
+        "attempted_at": "2024-03-15T15:30:00Z",
+        "comment": "Same proof data submitted 30 minutes after original use"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "NONCE_REUSED",
+        "error_message": "Nonce n0nc3_r3pl4y_4tt4ck_20240315 has already been used",
+        "logged_to_ledger": true,
+        "recommended_action": "potential_replay_attack_investigate",
+        "nonce_tracking": {
+          "first_seen": "2024-03-15T15:00:15Z",
+          "reuse_attempt": "2024-03-15T15:30:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "FAIL-009",
+      "name": "timestamp_invalid",
+      "category": "temporal_validation",
+      "description": "Proof timestamp is outside acceptable clock skew tolerance",
+      "scenario": "Clock skew or potential timestamp manipulation",
+      "verifier_time": "2024-03-15T16:00:00Z",
+      "acceptable_skew_seconds": 300,
+      "proof_attempt": {
+        "proof_id": "prf-20240315-clock-skew-009",
+        "timestamp": "2024-03-15T15:50:00Z",
+        "skew_seconds": 600,
+        "comment": "10 minute difference exceeds 5 minute tolerance"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "TIMESTAMP_INVALID",
+        "error_message": "Proof timestamp 2024-03-15T15:50:00Z is outside acceptable clock skew (600s > 300s tolerance)",
+        "logged_to_ledger": true,
+        "recommended_action": "check_system_clocks_or_potential_manipulation"
+      }
+    },
+    {
+      "case_id": "FAIL-010",
+      "name": "session_epoch_old",
+      "category": "epoch_validation",
+      "description": "Session epoch in proof is lower than current session epoch",
+      "scenario": "Attempt to use outdated session epoch after policy update",
+      "verifier_state": {
+        "current_session_epoch": 5,
+        "session_epoch_increased_reason": "policy_update"
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-epoch-old-010",
+        "session_epoch": 3,
+        "comment": "session_epoch 3 < current 5"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "SESSION_EPOCH_OLD",
+        "error_message": "Session epoch 3 is older than current epoch 5. Re-authentication required.",
+        "logged_to_ledger": true,
+        "recommended_action": "initiate_re_authentication_with_current_epoch"
+      }
+    },
+    {
+      "case_id": "FAIL-011",
+      "name": "policy_mismatch",
+      "category": "policy_validation",
+      "description": "Capability digest does not match current policy requirements",
+      "scenario": "Agent attempts operation with capabilities not allowed by current policy",
+      "current_policy": {
+        "policy_epoch": 7,
+        "allowed_capabilities": ["chat.basic", "profile.read"],
+        "restricted_capabilities": ["memory.exchange", "collab.accept"]
+      },
+      "proof_attempt": {
+        "proof_id": "prf-20240315-policy-mismatch-011",
+        "capability_digest": "sha256:chat.basic:profile.read:memory.exchange.summary_only",
+        "requested_capabilities": ["chat.basic", "profile.read", "memory.exchange.summary_only"]
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "POLICY_MISMATCH",
+        "error_message": "Requested capabilities include restricted capability: memory.exchange.summary_only",
+        "logged_to_ledger": true,
+        "recommended_action": "request_allowed_capabilities_only_or_policy_exception"
+      }
+    },
+    {
+      "case_id": "FAIL-012",
+      "name": "quarantined_hard_all_operations",
+      "category": "agent_state",
+      "description": "Agent in hard quarantine - all new sessions rejected",
+      "scenario": "Alice's agent is in hard quarantine due to confirmed compromise",
+      "agent_state": {
+        "agent_id": "agent-alice-main",
+        "state": "QUARANTINED_HARD",
+        "reason": "key_compromise_confirmed",
+        "entered_at": "2024-03-15T08:00:00Z"
+      },
+      "challenge": {
+        "challenge_id": "ch-20240315-fail-hard-quarantine-012",
+        "risk_level": "low"
+      },
+      "failure_result": {
+        "decision": "REJECTED",
+        "error_code": "AGENT_QUARANTINED",
+        "error_message": "Agent agent-alice-main is in QUARANTINED_HARD state. All new sessions are prohibited.",
+        "logged_to_ledger": true,
+        "allowed_operations": {
+          "low_risk": "prohibited",
+          "high_risk": "prohibited"
+        },
+        "active_sessions": "existing_sessions_should_be_terminated",
+        "recovery_required": "Agent must complete full recovery flow before any authentication"
+      }
+    }
+  ],
+  "error_code_summary": {
+    "INVALID_SIGNATURE": {
+      "severity": "critical",
+      "category": "signature_verification",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "NONCE_EXPIRED": {
+      "severity": "warning",
+      "category": "temporal_validation",
+      "log_to_ledger": false,
+      "fail_type": "both"
+    },
+    "TIMESTAMP_INVALID": {
+      "severity": "warning",
+      "category": "temporal_validation",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "KEY_REVOKED": {
+      "severity": "critical",
+      "category": "key_status",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "BINDING_MISMATCH": {
+      "severity": "critical",
+      "category": "binding_validation",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "POLICY_MISMATCH": {
+      "severity": "warning",
+      "category": "policy_validation",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "STALE_REVOCATION_CACHE": {
+      "severity": "high",
+      "category": "freshness_validation",
+      "log_to_ledger": true,
+      "fail_type": "high_risk_only"
+    },
+    "SESSION_EPOCH_OLD": {
+      "severity": "medium",
+      "category": "epoch_validation",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "IDENTITY_ROLLBACK_DETECTED": {
+      "severity": "critical",
+      "category": "monotonic_validation",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    },
+    "AGENT_QUARANTINED": {
+      "severity": "high",
+      "category": "agent_state",
+      "log_to_ledger": true,
+      "fail_type": "depends_on_quarantine_level"
+    },
+    "NONCE_REUSED": {
+      "severity": "critical",
+      "category": "replay_protection",
+      "log_to_ledger": true,
+      "fail_type": "both"
+    }
+  }
+}

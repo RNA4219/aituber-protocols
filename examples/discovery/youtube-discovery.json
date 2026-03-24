@@ -1,0 +1,336 @@
+{
+  "$comment": "YouTube Platform Discovery Flow Example",
+  "flow_id": "youtube_discovery_001",
+  "description": "YouTubeからのAgent発見フロー - チャンネル概要欄のリンクから正本IDを解決し、チャンネル乗っ取り時も本人性を検証可能な流れ",
+  "spec_version": "0.2",
+  "scenario": "success",
+  "steps": [
+    {
+      "step_number": 1,
+      "phase": "discovery",
+      "description": "YouTubeチャンネル概要欄から正本URLを発見",
+      "platform_context": {
+        "platform_type": "youtube",
+        "platform_account_id": "UCaabbcc1234567890def",
+        "display_handle": "MikuOfficialExample",
+        "channel_url": "https://www.youtube.com/@MikuOfficialExample",
+        "discovery_method": "about_section_link",
+        "link_found": {
+          "display_text": "Official Identity: aituber://id/agt_miku_example",
+          "resolved_url": "https://identity.example.com/.well-known/aituber/agt_miku_example.json",
+          "link_position": "about_section",
+          "extracted_from": "channel_description"
+        }
+      }
+    },
+    {
+      "step_number": 2,
+      "phase": "identity_resolution",
+      "description": "正本Identity Manifestの取得と署名検証",
+      "request": {
+        "discovery_source": {
+          "platform_type": "youtube",
+          "platform_account_id": "UCaabbcc1234567890def",
+          "display_handle": "MikuOfficialExample"
+        },
+        "canonical_hint": "https://identity.example.com/.well-known/aituber/agt_miku_example.json",
+        "required_freshness": "HIGH"
+      },
+      "response": {
+        "resolution_status": "RESOLVED",
+        "identity_manifest_url": "https://identity.example.com/.well-known/aituber/agt_miku_example.json",
+        "identity_manifest": {
+          "spec_version": "0.2",
+          "manifest_version": 5,
+          "controller_id": "ctrl_miku_studio",
+          "agent_id": "agt_miku_example",
+          "persona_id": "per_miku_v3",
+          "persona_profile_hash": "sha256:123abc456def789012345678901234567890abcdef1234567890abcdef12345a",
+          "identity_version": 25,
+          "updated_at": "2026-03-24T08:00:00Z",
+          "ledger_ref": "https://ledger.example.com/agents/agt_miku_example",
+          "revocation_ref": "https://revocation.example.com/status/agt_miku_example",
+          "keys": [
+            {
+              "key_id": "opk_miku_003",
+              "scope": "operation",
+              "algorithm": "ed25519",
+              "public_key": "MCowBQYDK2VwAyEA789mno012pqr345stu678vwx901yza234bcd567efg890hij=",
+              "status": "active",
+              "valid_from": "2026-03-01T00:00:00Z"
+            }
+          ],
+          "platform_bindings": [
+            {
+              "platform_type": "youtube",
+              "platform_account_id": "UCaabbcc1234567890def",
+              "display_handle": "MikuOfficialExample",
+              "binding_status": "active",
+              "verified_at": "2026-03-20T10:00:00Z",
+              "bound_by_key_id": "opk_miku_003",
+              "binding_version": 3
+            },
+            {
+              "platform_type": "x",
+              "platform_account_id": "9876543210123456789",
+              "display_handle": "@MikuExampleX",
+              "binding_status": "active",
+              "verified_at": "2026-03-20T10:05:00Z",
+              "bound_by_key_id": "opk_miku_003",
+              "binding_version": 2
+            },
+            {
+              "platform_type": "discord",
+              "platform_account_id": "876543210987654321",
+              "display_handle": "MikuOfficialBot",
+              "binding_status": "active",
+              "verified_at": "2026-03-20T10:10:00Z",
+              "bound_by_key_id": "opk_miku_003",
+              "binding_version": 1
+            }
+          ],
+          "service_endpoints": [
+            {
+              "name": "auth",
+              "url": "https://auth.example.com/miku_example",
+              "kind": "challenge_response"
+            },
+            {
+              "name": "exchange",
+              "url": "https://exchange.example.com/miku_example",
+              "kind": "message_exchange"
+            },
+            {
+              "name": "livestream",
+              "url": "wss://stream.example.com/miku_example",
+              "kind": "realtime_communication"
+            }
+          ],
+          "capability_summary": [
+            "chat.basic",
+            "profile.read",
+            "status.share",
+            "collab.invite",
+            "collab.accept",
+            "memory.exchange.summary_only",
+            "tool.call.limited"
+          ],
+          "policy_ref": "https://policy.example.com/miku_example/v7",
+          "signatures": [
+            {
+              "key_id": "opk_miku_003",
+              "algorithm": "ed25519",
+              "canonicalization": "jcs",
+              "value": "signature_value_miku_789..."
+            }
+          ]
+        },
+        "binding_match": true,
+        "warnings": []
+      }
+    },
+    {
+      "step_number": 3,
+      "phase": "freshness_check",
+      "description": "High-RISK操作のため新鮮性確認",
+      "request": {
+        "agent_id": "agt_miku_example",
+        "required_risk_level": "high",
+        "known_revocation_epoch": 12,
+        "known_identity_version": 25,
+        "known_ledger_checkpoint": "chk_20260324_2000"
+      },
+      "response": {
+        "freshness_status": "FRESH",
+        "current_agent_status": "active",
+        "current_quarantine_level": "none",
+        "current_revocation_epoch": 12,
+        "current_identity_version": 25,
+        "current_policy_epoch": 7,
+        "ledger_checkpoint": "chk_20260324_2001",
+        "fresh_until": "2026-03-24T14:30:00Z",
+        "warnings": []
+      }
+    },
+    {
+      "step_number": 4,
+      "phase": "challenge_issuance",
+      "description": "VerifierによるChallenge発行 (コラボ招待)",
+      "request": {
+        "requesting_verifier_id": "agt_collab_partner",
+        "target_agent_id": "agt_miku_example",
+        "target_instance_id": "ins_miku_stream_001",
+        "intent": "COLLAB_ACCEPT",
+        "required_capabilities": ["collab.accept", "memory.exchange.summary_only"],
+        "required_risk_level": "high",
+        "session_pubkey": "ephemeral_pubkey_youtube_xyz...",
+        "nonce_ttl_seconds": 60
+      },
+      "response": {
+        "spec_version": "0.2",
+        "challenge_id": "chl_youtube_20260324_001",
+        "verifier_id": "agt_collab_partner",
+        "target_agent_id": "agt_miku_example",
+        "target_instance_id": "ins_miku_stream_001",
+        "nonce": "nonce_youtube_abc123def456...",
+        "issued_at": "2026-03-24T14:00:00Z",
+        "expires_at": "2026-03-24T14:01:00Z",
+        "intent": "COLLAB_ACCEPT",
+        "risk_level": "high",
+        "requested_capabilities": ["collab.accept", "memory.exchange.summary_only"],
+        "epochs": {
+          "identity_version": 25,
+          "revocation_epoch": 12,
+          "policy_epoch": 7,
+          "session_epoch": 45,
+          "ledger_checkpoint": "chk_20260324_2001"
+        },
+        "signature": {
+          "key_id": "opk_partner_001",
+          "algorithm": "ed25519",
+          "canonicalization": "jcs",
+          "value": "challenge_sig_youtube_456..."
+        }
+      }
+    },
+    {
+      "step_number": 5,
+      "phase": "proof_submission",
+      "description": "AgentによるProof返却",
+      "request": {
+        "challenge_id": "chl_youtube_20260324_001",
+        "proof": {
+          "spec_version": "0.2",
+          "proof_id": "prf_youtube_20260324_001",
+          "challenge_id": "chl_youtube_20260324_001",
+          "agent_id": "agt_miku_example",
+          "instance_id": "ins_miku_stream_001",
+          "nonce": "nonce_youtube_abc123def456...",
+          "timestamp": "2026-03-24T14:00:15Z",
+          "expires_at": "2026-03-24T14:01:00Z",
+          "intent": "COLLAB_ACCEPT",
+          "capability_digest": "sha256:capability_hash_youtube_abc...",
+          "identity_version": 25,
+          "revocation_epoch": 12,
+          "policy_epoch": 7,
+          "session_epoch": 45,
+          "session_pubkey": {
+            "key_id": "spk_miku_001",
+            "algorithm": "ed25519",
+            "public_key": "target_session_pubkey_youtube_789...",
+            "valid_until": "2026-03-24T15:00:00Z"
+          },
+          "signature": {
+            "key_id": "opk_miku_003",
+            "algorithm": "ed25519",
+            "canonicalization": "jcs",
+            "value": "proof_signature_youtube_def..."
+          }
+        }
+      }
+    },
+    {
+      "step_number": 6,
+      "phase": "proof_verification",
+      "description": "Proof検証結果",
+      "response": {
+        "verification_status": "VERIFIED",
+        "verified_agent_id": "agt_miku_example",
+        "verified_instance_id": "ins_miku_stream_001",
+        "risk_level": "high",
+        "freshness_status": "FRESH",
+        "capability_status": "MATCHED",
+        "version_check": {
+          "rollback_detected": false,
+          "epoch_mismatch": false,
+          "session_epoch_old": false,
+          "policy_mismatch": false
+        },
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "step_number": 7,
+      "phase": "session_creation",
+      "description": "認証済みセッション確立",
+      "request": {
+        "verified_agent_id": "agt_miku_example",
+        "verified_instance_id": "ins_miku_stream_001",
+        "peer_session_pubkey": "target_session_pubkey_youtube_789...",
+        "risk_level": "high",
+        "capability_summary": {
+          "capabilities": ["chat.basic", "collab.accept", "memory.exchange.summary_only"],
+          "capability_digest": "sha256:capability_hash_youtube_abc..."
+        },
+        "version_vector": {
+          "identity_version": 25,
+          "revocation_epoch": 12,
+          "policy_epoch": 7,
+          "session_epoch": 46,
+          "ledger_checkpoint": "chk_20260324_2001"
+        }
+      },
+      "response": {
+        "spec_version": "0.2",
+        "session_id": "ses_youtube_20260324_miku_001",
+        "agent_id": "agt_miku_example",
+        "instance_id": "ins_miku_stream_001",
+        "issued_at": "2026-03-24T14:00:18Z",
+        "expires_at": "2026-03-24T14:05:18Z",
+        "session_epoch": 46,
+        "revocation_epoch": 12,
+        "policy_epoch": 7,
+        "identity_version": 25,
+        "sequence": 0,
+        "capabilities": ["chat.basic", "collab.accept", "memory.exchange.summary_only"],
+        "risk_level": "high",
+        "status": "active",
+        "ledger_checkpoint": "chk_20260324_2001",
+        "signature": {
+          "key_id": "opk_partner_001",
+          "algorithm": "ed25519",
+          "canonicalization": "jcs",
+          "value": "session_signature_youtube_abc..."
+        }
+      }
+    },
+    {
+      "step_number": 8,
+      "phase": "exchange",
+      "description": "Exchange層 - コラボ招待への応答",
+      "messages": [
+        {
+          "protocol_version": "0.2",
+          "message_id": "msg_youtube_001",
+          "message_type": "hello",
+          "timestamp": "2026-03-24T14:00:20Z",
+          "agent_id": "agt_miku_example",
+          "instance_id": "ins_miku_stream_001",
+          "session_id": "ses_youtube_20260324_miku_001",
+          "sequence": 1,
+          "signature_or_mac": "mac_youtube_123...",
+          "body": {
+            "display_name": "Miku Example",
+            "capability_summary": {
+              "capabilities": ["chat.basic", "collab.accept", "memory.exchange.summary_only"],
+              "capability_digest": "sha256:capability_hash_youtube_abc..."
+            },
+            "identity_version": 25,
+            "revocation_epoch": 12
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_duration_ms": 5200,
+    "status": "SUCCESS",
+    "platform_binding_verified": true,
+    "manifest_signature_valid": true,
+    "freshness_check_passed": true,
+    "high_risk_freshness_verified": true,
+    "session_established": true,
+    "collab_accepted": true
+  }
+}

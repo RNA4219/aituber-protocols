@@ -1,0 +1,451 @@
+{
+  "$comment": "Discovery Flow Failure Examples - 失敗パターン集",
+  "description": "各プラットフォームからの発見フローにおける失敗パターンとエラーハンドリング例",
+  "spec_version": "0.2",
+  "failure_scenarios": [
+    {
+      "scenario_id": "failure_001",
+      "platform": "x",
+      "failure_type": "BINDING_MISMATCH",
+      "description": "Xアカウントの乗っ取りにより、Manifest内のplatform_account_idと発見元が一致しない",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "discovery",
+          "description": "Xプロフィールから正本URLを発見 (乗っ取り済みアカウント)",
+          "platform_context": {
+            "platform_type": "x",
+            "platform_account_id": "1892345678901234567",
+            "display_handle": "@kizuna_ai_example",
+            "note": "このアカウントは攻撃者により乗っ取り済み"
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "identity_resolution",
+          "description": "Manifest取得時のBinding照合失敗",
+          "request": {
+            "discovery_source": {
+              "platform_type": "x",
+              "platform_account_id": "1892345678901234567",
+              "display_handle": "@kizuna_ai_example"
+            },
+            "canonical_hint": "https://identity.example.com/.well-known/aituber/agt_kizuna_ai.json",
+            "required_freshness": "LOW"
+          },
+          "response": {
+            "resolution_status": "BINDING_MISMATCH",
+            "identity_manifest_url": "https://identity.example.com/.well-known/aituber/agt_kizuna_ai.json",
+            "identity_manifest": {
+              "spec_version": "0.2",
+              "agent_id": "agt_kizuna_ai",
+              "platform_bindings": [
+                {
+                  "platform_type": "x",
+                  "platform_account_id": "9998887776665554443",
+                  "display_handle": "@kizuna_ai_official",
+                  "binding_status": "active",
+                  "binding_version": 2
+                }
+              ]
+            },
+            "binding_match": false,
+            "binding_mismatch_details": {
+              "expected_platform_account_id": "9998887776665554443",
+              "actual_platform_account_id": "1892345678901234567",
+              "expected_display_handle": "@kizuna_ai_official",
+              "actual_display_handle": "@kizuna_ai_example"
+            },
+            "warnings": [
+              "PLATFORM_ACCOUNT_ID_MISMATCH",
+              "HANDLE_MISMATCH"
+            ]
+          }
+        },
+        {
+          "step_number": 3,
+          "phase": "error_response",
+          "description": "ユーザーへのエラー表示",
+          "error": {
+            "code": "BINDING_MISMATCH",
+            "message": "Platform account does not match the identity manifest binding",
+            "retryable": false,
+            "risk_level": "HIGH",
+            "details": {
+              "detected_issue": "potential_account_hijacking",
+              "recommended_action": "contact_controller_via_official_channels"
+            }
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "BINDING_MISMATCH",
+        "security_implication": "Xアカウント乗っ取りの可能性を検知"
+      }
+    },
+    {
+      "scenario_id": "failure_002",
+      "platform": "discord",
+      "failure_type": "KEY_REVOKED",
+      "description": "Operation Keyが失効済みのAgentが認証を試みる",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "identity_resolution",
+          "description": "Manifest取得 - Key失効済み",
+          "response": {
+            "resolution_status": "RESOLVED",
+            "identity_manifest": {
+              "agent_id": "agt_shiro_chan",
+              "keys": [
+                {
+                  "key_id": "opk_shiro_001",
+                  "scope": "operation",
+                  "status": "revoked",
+                  "valid_from": "2025-06-01T00:00:00Z",
+                  "valid_until": "2026-03-20T12:00:00Z"
+                }
+              ]
+            },
+            "warnings": ["KEY_REVOKED"]
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "proof_verification",
+          "description": "失効済みKeyでの署名検証失敗",
+          "response": {
+            "verification_status": "REJECTED",
+            "errors": [
+              {
+                "code": "KEY_REVOKED",
+                "message": "Operation key opk_shiro_001 has been revoked",
+                "retryable": false,
+                "risk_level": "HIGH"
+              }
+            ]
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "KEY_REVOKED",
+        "recommended_recovery": "KEY_ROTATION_REQUIRED"
+      }
+    },
+    {
+      "scenario_id": "failure_003",
+      "platform": "youtube",
+      "failure_type": "STALE_REVOCATION_CACHE",
+      "description": "High-RISK操作時にRevocation Cacheが陳腐化している",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "freshness_check",
+          "description": "Revocation Cacheの鮮度確認失敗",
+          "request": {
+            "agent_id": "agt_miku_example",
+            "required_risk_level": "HIGH",
+            "known_revocation_epoch": 12
+          },
+          "response": {
+            "freshness_status": "STALE",
+            "agent_status": "UNKNOWN",
+            "fresh_until": "2026-03-24T12:00:00Z",
+            "current_time": "2026-03-24T14:30:00Z",
+            "warnings": [
+              "REVOCATION_CACHE_EXPIRED",
+              "CANNOT_VERIFY_HIGH_RISK_OPERATION"
+            ]
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "error_response",
+          "description": "High-RISK操作の拒否",
+          "error": {
+            "code": "STALE_REVOCATION_CACHE",
+            "message": "Revocation cache is stale; high-risk operation denied",
+            "retryable": true,
+            "risk_level": "HIGH",
+            "details": {
+              "cache_expired_at": "2026-03-24T12:00:00Z",
+              "required_fresh_for": "HIGH_RISK_COLLAB_ACCEPT"
+            }
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "STALE_REVOCATION_CACHE",
+        "behavior": "FAIL_CLOSED",
+        "retry_possible": true
+      }
+    },
+    {
+      "scenario_id": "failure_004",
+      "platform": "x",
+      "failure_type": "IDENTITY_ROLLBACK_DETECTED",
+      "description": "Manifestのidentity_versionが過去に戻っている (ロールバック攻撃の可能性)",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "identity_resolution",
+          "description": "以前より古いidentity_versionを検知",
+          "verifier_state": {
+            "last_seen_identity_version": 15,
+            "last_seen_revocation_epoch": 10
+          },
+          "response": {
+            "resolution_status": "ROLLBACK_SUSPECTED",
+            "identity_manifest": {
+              "identity_version": 12,
+              "revocation_epoch": 8
+            },
+            "rollback_detection": {
+              "expected_min_identity_version": 15,
+              "received_identity_version": 12,
+              "version_regression": true
+            },
+            "warnings": [
+              "IDENTITY_VERSION_REGRESSION",
+              "POTENTIAL_ROLLBACK_ATTACK"
+            ]
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "error_response",
+          "description": "ロールバック検知による拒否",
+          "error": {
+            "code": "IDENTITY_ROLLBACK_DETECTED",
+            "message": "Identity version regression detected; possible rollback attack",
+            "retryable": false,
+            "risk_level": "HIGH",
+            "details": {
+              "last_known_version": 15,
+              "received_version": 12,
+              "recommended_action": "FETCH_FROM_ALTERNATE_SOURCE_OR_CONTACT_CONTROLLER"
+            }
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "IDENTITY_ROLLBACK_DETECTED",
+        "security_implication": "ロールバック攻撃またはsplit-viewの可能性"
+      }
+    },
+    {
+      "scenario_id": "failure_005",
+      "platform": "discord",
+      "failure_type": "AGENT_QUARANTINED",
+      "description": "Quarantine状態のAgentがHigh-RISK操作を試みる",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "identity_resolution",
+          "description": "Manifest取得 - Quarantine状態",
+          "response": {
+            "resolution_status": "RESOLVED",
+            "identity_manifest": {
+              "agent_id": "agt_shiro_chan"
+            },
+            "agent_status": "QUARANTINED",
+            "quarantine_status": "HARD",
+            "quarantine_reason": "COMPROMISE_INVESTIGATION"
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "challenge_issuance",
+          "description": "High-RISK操作のChallenge発行試行",
+          "request": {
+            "risk_level": "HIGH",
+            "intent": "COLLAB_INVITE"
+          },
+          "response": {
+            "challenge_id": null,
+            "error": {
+              "code": "AGENT_QUARANTINED",
+              "message": "Agent is under quarantine; high-risk operations denied",
+              "retryable": false,
+              "risk_level": "HIGH",
+              "details": {
+                "quarantine_level": "HARD",
+                "allowed_operations": ["chat.basic", "status.notify"],
+                "denied_operations": ["collab.invite", "collab.accept", "memory.exchange"]
+              }
+            }
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "AGENT_QUARANTINED",
+        "behavior": "CAPABILITY_DOWNGRADE",
+        "recovery_required": true
+      }
+    },
+    {
+      "scenario_id": "failure_006",
+      "platform": "youtube",
+      "failure_type": "NONCE_REPLAYED",
+      "description": "リプレイ攻撃の検知",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "proof_verification",
+          "description": "再利用されたnonceを検知",
+          "request": {
+            "challenge_id": "chl_youtube_20260324_001",
+            "proof": {
+              "nonce": "nonce_youtube_abc123def456",
+              "timestamp": "2026-03-24T14:30:00Z"
+            }
+          },
+          "verifier_state": {
+            "used_nonces": [
+              {
+                "nonce": "nonce_youtube_abc123def456",
+                "first_used_at": "2026-03-24T14:00:15Z",
+                "status": "CONSUMED"
+              }
+            ]
+          },
+          "response": {
+            "verification_status": "REJECTED",
+            "errors": [
+              {
+                "code": "NONCE_REPLAYED",
+                "message": "Nonce has already been used; possible replay attack",
+                "retryable": false,
+                "risk_level": "HIGH",
+                "details": {
+                  "nonce": "nonce_youtube_abc123def456",
+                  "first_used_at": "2026-03-24T14:00:15Z",
+                  "attempted_reuse_at": "2026-03-24T14:30:00Z"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "NONCE_REPLAYED",
+        "security_implication": "リプレイ攻撃の可能性"
+      }
+    },
+    {
+      "scenario_id": "failure_007",
+      "platform": "x",
+      "failure_type": "TIMESTAMP_INVALID",
+      "description": "Clock skewが許容範囲を超えている",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "time_health_check",
+          "description": "時刻同期異常の検知",
+          "request": {
+            "required_risk_level": "HIGH",
+            "observed_remote_time": "2026-03-24T10:00:00Z",
+            "local_time": "2026-03-24T14:30:00Z",
+            "max_allowed_skew_seconds": 120
+          },
+          "response": {
+            "time_health_status": "UNTRUSTED",
+            "observed_skew_seconds": 16200,
+            "high_risk_allowed": false,
+            "recommended_error_code": "TIMESTAMP_INVALID",
+            "warnings": [
+              "CLOCK_SKEW_EXCEEDS_THRESHOLD",
+              "POSSIBLE_TIME_MANIPULATION"
+            ]
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "error_response",
+          "description": "時刻異常によるHigh-RISK拒否",
+          "error": {
+            "code": "TIMESTAMP_INVALID",
+            "message": "Clock skew exceeds acceptable threshold; high-risk operations denied",
+            "retryable": false,
+            "risk_level": "HIGH",
+            "details": {
+              "observed_skew_seconds": 16200,
+              "max_allowed_skew_seconds": 120,
+              "recommended_action": "SYNCHRONIZE_SYSTEM_CLOCK"
+            }
+          }
+        }
+      ],
+      "summary": {
+        "status": "FAILED",
+        "failure_reason": "TIMESTAMP_INVALID",
+        "security_implication": "時刻操作またはシステム異常の可能性"
+      }
+    },
+    {
+      "scenario_id": "failure_008",
+      "platform": "discord",
+      "failure_type": "FIRST_SEEN_RESTRICTED",
+      "description": "初回接触のAgentによるHigh-RISK操作が制限される",
+      "steps": [
+        {
+          "step_number": 1,
+          "phase": "bootstrap_trust_evaluation",
+          "description": "First-seen判定",
+          "request": {
+            "agent_id": "agt_new_agent",
+            "discovery_source": {
+              "platform_type": "discord",
+              "platform_account_id": "111222333444555666"
+            },
+            "known_version_vector": null,
+            "requested_risk_level": "HIGH",
+            "watcher_evidence_refs": [],
+            "mirror_checkpoint_refs": []
+          },
+          "response": {
+            "bootstrap_status": "FIRST_SEEN_RESTRICTED",
+            "trust_level": "FIRST_SEEN",
+            "high_risk_allowed": false,
+            "requires_additional_confirmation": true,
+            "recommended_actions": [
+              "FETCH_WATCHER_EVIDENCE",
+              "DEFER_HIGH_RISK",
+              "WAIT_FOR_KNOWN_CHECKPOINT"
+            ],
+            "warnings": [
+              "no prior monotonic state",
+              "rollback detection unavailable"
+            ]
+          }
+        },
+        {
+          "step_number": 2,
+          "phase": "error_response",
+          "description": "First-seen制限によるHigh-RISK遅延",
+          "error": {
+            "code": "FIRST_SEEN_RESTRICTED",
+            "message": "First-seen agent; high-risk operations require additional confirmation",
+            "retryable": true,
+            "risk_level": "HIGH",
+            "details": {
+              "allowed_risk_level": "LOW",
+              "required_action": "MANUAL_CONFIRMATION_OR_WATCHER_VERIFICATION"
+            }
+          }
+        }
+      ],
+      "summary": {
+        "status": "DEFERRED",
+        "failure_reason": "FIRST_SEEN_RESTRICTED",
+        "behavior": "ADDITIONAL_CONFIRMATION_REQUIRED"
+      }
+    }
+  ]
+}

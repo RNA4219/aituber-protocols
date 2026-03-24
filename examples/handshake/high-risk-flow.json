@@ -1,0 +1,211 @@
+{
+  "$comment": "High-Risk Authentication Flow Example - AITuber Protocol v0.2-draft",
+  "description": "Challenge-Response handshake for high-risk operations (memory exchange, capability upgrade, binding changes)",
+  "flow": {
+    "scenario": "AITuber Alice wants to perform a collab acceptance with AITuber Bob, requiring high-risk authentication",
+    "risk_level": "high",
+    "characteristics": [
+      "Fresh revocation proof is MANDATORY",
+      "Fail-closed on any freshness or validation issues",
+      "Stale revocation cache is NOT acceptable",
+      "Identity host must be reachable",
+      "Additional epoch validation required"
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "challenge_issuance",
+      "description": "Verifier (Bob) issues a high-risk challenge with strict epoch requirements",
+      "message": {
+        "spec_version": "0.2-draft",
+        "challenge_id": "ch-20240315-h1ghr1sk-c0ll4b",
+        "verifier_id": "agent-bob-main",
+        "target_agent_id": "agent-alice-main",
+        "target_instance_id": "inst-alice-001",
+        "nonce": "n0nc3_h1ghr1sk_c0ll4b_20240315t110000z",
+        "issued_at": "2024-03-15T11:00:00Z",
+        "expires_at": "2024-03-15T11:02:00Z",
+        "intent": "collab.accept",
+        "risk_level": "high",
+        "requested_capabilities": [
+          "chat.basic",
+          "profile.read",
+          "status.share",
+          "collab.accept",
+          "memory.exchange.summary_only"
+        ],
+        "epochs": {
+          "identity_version": 5,
+          "revocation_epoch": 12,
+          "policy_epoch": 3,
+          "session_epoch": 2,
+          "ledger_checkpoint": "cp-20240315-002-d4e5f6"
+        },
+        "signature": {
+          "key_id": "key-bob-operation-002",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "sig_bob_challenge_high_risk_xyz789..."
+        }
+      }
+    },
+    {
+      "step": 2,
+      "name": "fresh_revocation_check",
+      "description": "Before responding, Alice must obtain fresh revocation proof from identity host",
+      "internal_action": {
+        "action_type": "fresh_revocation_query",
+        "target": "https://identity-host.example.com/agent-alice-main/revocation-status",
+        "required_freshness": "must be obtained within last 30 seconds",
+        "cache_policy": "stale-if-error: false, must-revalidate: true"
+      }
+    },
+    {
+      "step": 3,
+      "name": "proof_response",
+      "description": "Agent (Alice) responds with proof including fresh revocation evidence",
+      "message": {
+        "spec_version": "0.2-draft",
+        "proof_id": "prf-20240315-h1ghr1sk-r3sp0ns",
+        "challenge_id": "ch-20240315-h1ghr1sk-c0ll4b",
+        "agent_id": "agent-alice-main",
+        "instance_id": "inst-alice-001",
+        "nonce": "n0nc3_h1ghr1sk_c0ll4b_20240315t110000z",
+        "timestamp": "2024-03-15T11:00:45Z",
+        "expires_at": "2024-03-15T11:05:45Z",
+        "intent": "collab.accept",
+        "capability_digest": "sha256:chat.basic:profile.read:status.share:collab.accept:memory.exchange.summary_only",
+        "identity_version": 5,
+        "revocation_epoch": 12,
+        "policy_epoch": 3,
+        "session_epoch": 2,
+        "session_pubkey": {
+          "key_id": "key-alice-session-20240315-highrisk",
+          "algorithm": "Ed25519",
+          "public_key": "pk_alice_session_highrisk_def456ghi...",
+          "valid_until": "2024-03-15T15:00:45Z"
+        },
+        "signature": {
+          "key_id": "key-alice-operation-003",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "sig_alice_proof_high_risk_jkl012mno..."
+        }
+      },
+      "attached_revocation_proof": {
+        "obtained_at": "2024-03-15T11:00:30Z",
+        "fresh_until": "2024-03-15T11:01:00Z",
+        "agent_status": "active",
+        "key_statuses": {
+          "key-alice-operation-003": "active"
+        }
+      }
+    },
+    {
+      "step": 4,
+      "name": "verifier_freshness_validation",
+      "description": "Verifier (Bob) validates the fresh revocation status",
+      "validation_checks": [
+        {
+          "check": "signature_valid",
+          "result": "pass",
+          "details": "Signature verified against operation key"
+        },
+        {
+          "check": "nonce_not_reused",
+          "result": "pass",
+          "details": "Nonce has not been used before"
+        },
+        {
+          "check": "timestamp_valid",
+          "result": "pass",
+          "details": "Timestamp within acceptable clock skew"
+        },
+        {
+          "check": "fresh_revocation_proof",
+          "result": "pass",
+          "details": "Revocation proof obtained within freshness window"
+        },
+        {
+          "check": "epoch_monotonic",
+          "result": "pass",
+          "details": "All epochs >= previously seen values"
+        },
+        {
+          "check": "not_quarantined",
+          "result": "pass",
+          "details": "Agent is not in quarantine state"
+        },
+        {
+          "check": "rollback_detection",
+          "result": "pass",
+          "details": "No identity_version regression detected"
+        },
+        {
+          "check": "capability_match",
+          "result": "pass",
+          "details": "Capability digest matches requested capabilities"
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "session_establishment",
+      "description": "Verifier (Bob) issues a high-risk session with extended tracking",
+      "message": {
+        "spec_version": "0.2-draft",
+        "session_id": "sess-20240315-h1ghr1sk-s3ss10n",
+        "agent_id": "agent-alice-main",
+        "instance_id": "inst-alice-001",
+        "issued_at": "2024-03-15T11:01:00Z",
+        "expires_at": "2024-03-15T15:01:00Z",
+        "session_epoch": 2,
+        "revocation_epoch": 12,
+        "policy_epoch": 3,
+        "identity_version": 5,
+        "sequence": 1,
+        "capabilities": [
+          "chat.basic",
+          "profile.read",
+          "status.share",
+          "collab.accept",
+          "memory.exchange.summary_only"
+        ],
+        "risk_level": "high",
+        "status": "active",
+        "ledger_checkpoint": "cp-20240315-002-d4e5f6",
+        "signature": {
+          "key_id": "key-bob-session-issuer-001",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "sig_bob_session_high_risk_pqr345stu..."
+        }
+      }
+    }
+  ],
+  "validation_notes": {
+    "freshness_requirements": {
+      "revocation_cache": "MUST be fresh - obtained within defined freshness window",
+      "identity_host": "MUST be reachable - fail-closed if unreachable",
+      "max_age_seconds": 30
+    },
+    "epoch_validation": {
+      "identity_version": "Must be >= max_seen_identity_version",
+      "revocation_epoch": "Must be >= max_seen_revocation_epoch",
+      "policy_epoch": "Must be >= max_seen_policy_epoch",
+      "session_epoch": "Must be >= max_seen_session_epoch"
+    },
+    "quarantine_check": "Agent must NOT be in ANY quarantine state (QUARANTINED_SOFT or QUARANTINED_HARD)",
+    "rollback_detection": "Any epoch regression triggers REJECTION",
+    "fail_closed_conditions": [
+      "stale_revocation_cache",
+      "identity_host_unreachable",
+      "epoch_regression",
+      "agent_quarantined",
+      "invalid_signature",
+      "nonce_replay",
+      "timestamp_outside_tolerance"
+    ]
+  }
+}

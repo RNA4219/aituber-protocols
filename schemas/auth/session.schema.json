@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/auth/session.schema.json",
+  "title": "Authenticated Session",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "agent_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "instance_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "issued_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "session_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "revocation_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "policy_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "identity_version": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "sequence": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "capabilities": {
+      "$ref": "../core/common.schema.json#/$defs/capabilitySummary"
+    },
+    "risk_level": {
+      "$ref": "../core/common.schema.json#/$defs/riskLevel"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "renewing", "expired", "terminated"]
+    },
+    "ledger_checkpoint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "termination_reason": {
+      "type": "string",
+      "enum": [
+        "expired",
+        "manual_termination",
+        "revocation_epoch_increased",
+        "policy_epoch_increased",
+        "high_risk_reauth_required",
+        "quarantine",
+        "rollback_suspected"
+      ]
+    },
+    "signature": {
+      "$ref": "../core/common.schema.json#/$defs/signature"
+    }
+  },
+  "required": [
+    "spec_version",
+    "session_id",
+    "agent_id",
+    "instance_id",
+    "issued_at",
+    "expires_at",
+    "session_epoch",
+    "revocation_epoch",
+    "policy_epoch",
+    "identity_version",
+    "sequence",
+    "ledger_checkpoint",
+    "status"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/session-request.schema.json",
+  "title": "Session Creation Request",
+  "description": "Request to create an authenticated session",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "verified_agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verified_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "peer_session_pubkey": {
+      "type": "string",
+      "minLength": 16,
+      "description": "The peer's session public key"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "high"]
+    },
+    "capability_summary": {
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "capability_digest": {
+          "type": "string"
+        }
+      }
+    },
+    "version_vector": {
+      "type": "object",
+      "properties": {
+        "identity_version": { "type": "integer" },
+        "revocation_epoch": { "type": "integer" },
+        "policy_epoch": { "type": "integer" },
+        "session_epoch": { "type": "integer" },
+        "ledger_checkpoint": { "type": "string" }
+      }
+    }
+  },
+  "required": ["verified_agent_id", "verified_instance_id", "peer_session_pubkey", "risk_level"]
+}

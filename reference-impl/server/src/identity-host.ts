@@ -144,14 +144,31 @@ export class IdentityHostImpl implements IdentityHost {
     const filePath = this.getManifestPath(manifest.agent_id);
     const dirPath = path.dirname(filePath);
 
-    // ディレクトリが存在しない場合は作成
-    await fs.mkdir(dirPath, { recursive: true });
-
     // 一時ファイルに書き込み後、リネームでアトミックな書き込みを実現
     const tempPath = `${filePath}.tmp`;
     const content = JSON.stringify(manifest, null, 2);
 
     try {
+      // ディレクトリを確実に作成（書き込み前に実行）
+      // Windowsで並列実行時の競合を防ぐため、EEXISTとEPERMをハンドリング
+      try {
+        await fs.mkdir(dirPath, { recursive: true });
+      } catch (mkdirError) {
+        const err = mkdirError as NodeJS.ErrnoException;
+        // EEXISTは問題なし（ディレクトリが既に存在）
+        // EPERMはWindowsでの並列作成競合の可能性があるため、ディレクトリ存在確認
+        if (err.code === 'EPERM') {
+          try {
+            await fs.stat(dirPath);
+            // ディレクトリが存在すれば続行
+          } catch {
+            // ディレクトリが存在しない場合は元のエラーをスロー
+            throw mkdirError;
+          }
+        } else if (err.code !== 'EEXIST') {
+          throw mkdirError;
+        }
+      }
       await fs.writeFile(tempPath, content, 'utf-8');
       await fs.rename(tempPath, filePath);
     } catch (error) {

@@ -1,0 +1,494 @@
+{
+  "$schema": "https://example.com/schemas/test-vectors/positive-vectors.schema.json",
+  "schema_version": "0.2",
+  "description": "Positive test vectors for AITuber authentication protocol - successful authentication scenarios",
+  "vectors": [
+    {
+      "id": "POS-001",
+      "name": "basic_low_risk_authentication",
+      "description": "Basic successful authentication flow for low-risk operation",
+      "scenario": "Agent A authenticates Agent B for basic profile viewing (low-risk)",
+      "input": {
+        "resolve_identity_request": {
+          "discovery_source": {
+            "platform_type": "discord",
+            "platform_account_id": "1234567890",
+            "display_handle": "agent_b"
+          },
+          "canonical_hint": "https://agent-b.example.com/.well-known/aituber/agent.json",
+          "required_freshness": "LOW"
+        },
+        "identity_manifest": {
+          "schema_version": "0.2",
+          "agent_id": "agt_B001",
+          "controller_id": "ctrl_B001",
+          "persona_id": "per_B001",
+          "identity_version": 5,
+          "operation_keys": [
+            {
+              "key_id": "opk_B001_1",
+              "public_key": "Ed25519_public_key_hex_value"
+            }
+          ],
+          "platform_bindings": [
+            {
+              "platform_type": "discord",
+              "platform_account_id": "1234567890",
+              "display_handle": "agent_b",
+              "binding_status": "ACTIVE",
+              "verified_at": "2026-03-24T09:00:00Z",
+              "bound_by_key_id": "opk_B001_1",
+              "binding_version": 1
+            }
+          ],
+          "service_endpoints": {
+            "auth_endpoint": "https://agent-b.example.com/auth",
+            "exchange_endpoint": "https://agent-b.example.com/exchange",
+            "revocation_endpoint": "https://agent-b.example.com/revocation"
+          },
+          "revocation_epoch": 3,
+          "policy_epoch": 2,
+          "last_updated_at": "2026-03-24T10:00:00Z",
+          "manifest_signature": "valid_signature_hex"
+        },
+        "issue_challenge_request": {
+          "verifier_id": "agt_A001",
+          "target_agent_id": "agt_B001",
+          "target_instance_id": "ins_B001_001",
+          "intent": "PROFILE_READ",
+          "required_capabilities": ["profile.read"],
+          "risk_level": "LOW",
+          "session_pubkey": "ephemeral_pubkey_A001",
+          "nonce_ttl_seconds": 60
+        },
+        "challenge": {
+          "challenge_id": "chl_20260324_001",
+          "target_agent_id": "agt_B001",
+          "target_instance_id": "ins_B001_001",
+          "nonce": "nonce_abc123xyz789",
+          "issued_at": "2026-03-24T12:30:00Z",
+          "expires_at": "2026-03-24T12:31:00Z",
+          "verifier_session_pubkey": "ephemeral_pubkey_A001",
+          "intent": "PROFILE_READ",
+          "risk_level": "LOW",
+          "version_vector": {
+            "identity_version": 5,
+            "revocation_epoch": 3,
+            "policy_epoch": 2,
+            "session_epoch": 10
+          }
+        },
+        "proof": {
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "nonce": "nonce_abc123xyz789",
+          "timestamp": "2026-03-24T12:30:15Z",
+          "expires_at": "2026-03-24T12:31:00Z",
+          "intent": "PROFILE_READ",
+          "session_pubkey": "session_pubkey_B001",
+          "capability_digest": "sha256:capability_digest_hex",
+          "revocation_epoch": 3,
+          "identity_version": 5,
+          "signature": "valid_proof_signature_hex"
+        }
+      },
+      "expected_output": {
+        "verification_status": "VERIFIED",
+        "verified_agent_id": "agt_B001",
+        "verified_instance_id": "ins_B001_001",
+        "risk_level": "LOW",
+        "freshness_status": "FRESH",
+        "capability_status": "MATCHED",
+        "version_check": {
+          "rollback_detected": false,
+          "epoch_mismatch": false,
+          "session_epoch_old": false,
+          "policy_mismatch": false
+        },
+        "session": {
+          "session_id": "ses_20260324_B001_001",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "issued_at": "2026-03-24T12:30:20Z",
+          "expires_at": "2026-03-24T12:35:20Z",
+          "session_epoch": 11,
+          "revocation_epoch": 3,
+          "policy_epoch": 2,
+          "sequence": 0,
+          "effective_capabilities": ["profile.read"],
+          "session_status": "ACTIVE"
+        },
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "POS-002",
+      "name": "high_risk_authentication_with_fresh_revocation_proof",
+      "description": "Successful high-risk authentication with fresh revocation proof",
+      "scenario": "Agent A invites Agent B for collaboration (high-risk operation)",
+      "input": {
+        "resolve_identity_request": {
+          "discovery_source": {
+            "platform_type": "x",
+            "platform_account_id": "agent_b_handle",
+            "display_handle": "@agent_b"
+          },
+          "canonical_hint": "https://agent-b.example.com/.well-known/aituber/agent.json",
+          "required_freshness": "HIGH"
+        },
+        "freshness_check_request": {
+          "agent_id": "agt_B001",
+          "required_risk_level": "HIGH",
+          "known_revocation_epoch": 3,
+          "known_identity_version": 5,
+          "known_ledger_checkpoint": "chk_100"
+        },
+        "freshness_check_response": {
+          "freshness_status": "FRESH",
+          "agent_status": "ACTIVE",
+          "quarantine_status": "NONE",
+          "current_revocation_epoch": 3,
+          "current_identity_version": 5,
+          "current_policy_epoch": 2,
+          "ledger_checkpoint": "chk_100",
+          "fresh_until": "2026-03-24T12:32:00Z"
+        },
+        "issue_challenge_request": {
+          "verifier_id": "agt_A001",
+          "target_agent_id": "agt_B001",
+          "target_instance_id": "ins_B001_001",
+          "intent": "COLLAB_INVITE",
+          "required_capabilities": ["collab.invite", "collab.accept"],
+          "risk_level": "HIGH",
+          "session_pubkey": "ephemeral_pubkey_A001",
+          "nonce_ttl_seconds": 60
+        },
+        "challenge": {
+          "challenge_id": "chl_20260324_002",
+          "target_agent_id": "agt_B001",
+          "target_instance_id": "ins_B001_001",
+          "nonce": "nonce_def456uvw012",
+          "issued_at": "2026-03-24T12:33:00Z",
+          "expires_at": "2026-03-24T12:34:00Z",
+          "verifier_session_pubkey": "ephemeral_pubkey_A001",
+          "intent": "COLLAB_INVITE",
+          "risk_level": "HIGH",
+          "version_vector": {
+            "identity_version": 5,
+            "revocation_epoch": 3,
+            "policy_epoch": 2,
+            "session_epoch": 10
+          }
+        },
+        "proof": {
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "nonce": "nonce_def456uvw012",
+          "timestamp": "2026-03-24T12:33:20Z",
+          "expires_at": "2026-03-24T12:34:00Z",
+          "intent": "COLLAB_INVITE",
+          "session_pubkey": "session_pubkey_B001",
+          "capability_digest": "sha256:capability_digest_hex_collab",
+          "revocation_epoch": 3,
+          "identity_version": 5,
+          "policy_epoch": 2,
+          "signature": "valid_proof_signature_hex_high_risk"
+        }
+      },
+      "expected_output": {
+        "verification_status": "VERIFIED",
+        "verified_agent_id": "agt_B001",
+        "verified_instance_id": "ins_B001_001",
+        "risk_level": "HIGH",
+        "freshness_status": "FRESH",
+        "capability_status": "MATCHED",
+        "version_check": {
+          "rollback_detected": false,
+          "epoch_mismatch": false,
+          "session_epoch_old": false,
+          "policy_mismatch": false
+        },
+        "session": {
+          "session_id": "ses_20260324_B001_002",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "issued_at": "2026-03-24T12:33:25Z",
+          "expires_at": "2026-03-24T12:38:25Z",
+          "session_epoch": 11,
+          "revocation_epoch": 3,
+          "policy_epoch": 2,
+          "sequence": 0,
+          "effective_capabilities": ["collab.invite", "collab.accept"],
+          "session_status": "ACTIVE"
+        },
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "POS-003",
+      "name": "session_renewal",
+      "description": "Successful session renewal before expiry",
+      "scenario": "Session is renewed when approaching expiry time",
+      "input": {
+        "current_session": {
+          "session_id": "ses_20260324_B001_001",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "issued_at": "2026-03-24T12:30:00Z",
+          "expires_at": "2026-03-24T12:35:00Z",
+          "session_epoch": 11,
+          "revocation_epoch": 3,
+          "policy_epoch": 2,
+          "sequence": 15,
+          "effective_capabilities": ["profile.read"],
+          "session_status": "ACTIVE"
+        },
+        "renew_session_request": {
+          "session_id": "ses_20260324_B001_001",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "current_sequence": 15,
+          "reason": "EXPIRY_APPROACHING"
+        },
+        "freshness_check": {
+          "freshness_status": "FRESH",
+          "agent_status": "ACTIVE",
+          "current_revocation_epoch": 3,
+          "current_policy_epoch": 2
+        }
+      },
+      "expected_output": {
+        "new_session": {
+          "session_id": "ses_20260324_B001_003",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "issued_at": "2026-03-24T12:34:00Z",
+          "expires_at": "2026-03-24T12:39:00Z",
+          "session_epoch": 12,
+          "revocation_epoch": 3,
+          "policy_epoch": 2,
+          "sequence": 0,
+          "effective_capabilities": ["profile.read"],
+          "session_status": "ACTIVE"
+        },
+        "old_session_status": "TERMINATING"
+      }
+    },
+    {
+      "id": "POS-004",
+      "name": "platform_binding_verification",
+      "description": "Successful platform binding verification across multiple platforms",
+      "scenario": "Agent discovered on X is verified through Discord binding",
+      "input": {
+        "discovery_source": {
+          "platform_type": "x",
+          "platform_account_id": "agent_b_x_handle",
+          "display_handle": "@agent_b_x"
+        },
+        "identity_manifest": {
+          "agent_id": "agt_B001",
+          "platform_bindings": [
+            {
+              "platform_type": "x",
+              "platform_account_id": "agent_b_x_handle",
+              "display_handle": "@agent_b_x",
+              "binding_status": "ACTIVE",
+              "verified_at": "2026-03-24T09:00:00Z"
+            },
+            {
+              "platform_type": "discord",
+              "platform_account_id": "1234567890",
+              "display_handle": "agent_b",
+              "binding_status": "ACTIVE",
+              "verified_at": "2026-03-24T09:05:00Z"
+            },
+            {
+              "platform_type": "youtube",
+              "platform_account_id": "UCagentBChannel",
+              "display_handle": "@AgentB",
+              "binding_status": "ACTIVE",
+              "verified_at": "2026-03-24T09:10:00Z"
+            }
+          ]
+        },
+        "required_freshness": "LOW"
+      },
+      "expected_output": {
+        "resolution_status": "RESOLVED",
+        "binding_match": true,
+        "cross_platform_verified": true,
+        "verified_platforms": ["x", "discord", "youtube"],
+        "warnings": []
+      }
+    },
+    {
+      "id": "POS-005",
+      "name": "soft_stale_identity_cache_low_risk",
+      "description": "Low-risk operation allowed with soft stale identity cache",
+      "scenario": "Low-risk profile read allowed with slightly stale identity cache after re-fetch attempt fails",
+      "input": {
+        "identity_cache": {
+          "agent_id": "agt_B001",
+          "identity_version": 5,
+          "cached_at": "2026-03-24T11:00:00Z",
+          "soft_ttl_seconds": 300,
+          "hard_ttl_seconds": 3600,
+          "current_time": "2026-03-24T12:30:00Z"
+        },
+        "cache_status": "SOFT_STALE",
+        "re_fetch_attempted": true,
+        "re_fetch_succeeded": false,
+        "risk_level": "LOW",
+        "operation": "PROFILE_READ"
+      },
+      "expected_output": {
+        "operation_allowed": true,
+        "degraded_mode": true,
+        "warning": "identity_cache_soft_stale_re_fetch_failed",
+        "effective_capabilities": ["profile.read"]
+      }
+    },
+    {
+      "id": "POS-006",
+      "name": "capability_downgrade_low_risk",
+      "description": "Capability downgrade applied for low-risk operation with stale revocation cache",
+      "scenario": "Low-risk operation allowed with capability downgrade when revocation cache is soft stale",
+      "input": {
+        "requested_capabilities": ["memory.exchange.summary_only", "profile.read"],
+        "revocation_cache": {
+          "agent_id": "agt_B001",
+          "revocation_epoch": 3,
+          "cached_at": "2026-03-24T12:28:00Z",
+          "soft_ttl_seconds": 15,
+          "current_time": "2026-03-24T12:30:00Z"
+        },
+        "cache_status": "SOFT_STALE",
+        "risk_level": "LOW"
+      },
+      "expected_output": {
+        "operation_allowed": true,
+        "capability_status": "DOWNGRADED",
+        "granted_capabilities": ["profile.read"],
+        "denied_capabilities": ["memory.exchange.summary_only"],
+        "warning": "revocation_cache_soft_stale_capability_downgraded"
+      }
+    },
+    {
+      "id": "POS-007",
+      "name": "cross_platform_identity_resolution",
+      "description": "Same agent resolved from different platform discovery sources",
+      "scenario": "Agent discovered from YouTube and Discord resolves to the same agent_id",
+      "input": {
+        "discovery_sources": [
+          {
+            "platform_type": "youtube",
+            "platform_account_id": "UCagentBChannel",
+            "display_handle": "@AgentB"
+          },
+          {
+            "platform_type": "discord",
+            "platform_account_id": "1234567890",
+            "display_handle": "agent_b"
+          }
+        ],
+        "canonical_hint": "https://agent-b.example.com/.well-known/aituber/agent.json"
+      },
+      "expected_output": {
+        "resolution_status": "RESOLVED",
+        "resolved_agent_id": "agt_B001",
+        "all_bindings_verified": true,
+        "identity_consistent": true
+      }
+    },
+    {
+      "id": "POS-008",
+      "name": "exchange_message_hello",
+      "description": "Successful hello message exchange after authentication",
+      "scenario": "Authenticated agents exchange hello messages",
+      "input": {
+        "session": {
+          "session_id": "ses_20260324_B001_001",
+          "agent_id": "agt_B001",
+          "session_status": "ACTIVE"
+        },
+        "hello_message": {
+          "protocol_version": "0.2",
+          "message_id": "msg_hello_001",
+          "message_type": "hello",
+          "timestamp": "2026-03-24T12:31:00Z",
+          "agent_id": "agt_A001",
+          "instance_id": "ins_A001_001",
+          "session_id": "ses_20260324_A001_001",
+          "sequence": 1,
+          "body": {
+            "display_name": "Agent A",
+            "capability_summary": {
+              "capabilities": ["chat.basic", "profile.read"],
+              "capability_digest": "sha256:digest_hex"
+            },
+            "identity_version": 8,
+            "revocation_epoch": 4
+          },
+          "signature_or_mac": "valid_mac_hex"
+        }
+      },
+      "expected_output": {
+        "message_valid": true,
+        "session_active": true,
+        "response_expected": true
+      }
+    },
+    {
+      "id": "POS-009",
+      "name": "collab_invite_accept_flow",
+      "description": "Complete collaboration invite and accept flow",
+      "scenario": "Agent A invites Agent B, B accepts the collaboration",
+      "input": {
+        "invite_message": {
+          "message_type": "collab.invite",
+          "invite_id": "inv_20260324_001",
+          "title": "Joint Stream Collaboration",
+          "summary": "Proposal for a joint streaming session",
+          "requested_actions": ["collab.accept"],
+          "risk_level": "HIGH",
+          "requires_fresh_reverification": true,
+          "session_id": "ses_20260324_B001_002"
+        },
+        "accept_message": {
+          "message_type": "collab.accept",
+          "invite_id": "inv_20260324_001",
+          "accepted_at": "2026-03-24T12:36:00Z",
+          "conditions": ["summary_only_memory_exchange"],
+          "session_id": "ses_20260324_A001_002"
+        }
+      },
+      "expected_output": {
+        "collaboration_established": true,
+        "effective_capabilities": ["collab.invite", "collab.accept"],
+        "memory_exchange_mode": "summary_only"
+      }
+    },
+    {
+      "id": "POS-010",
+      "name": "first_seen_bootstrap_with_watcher_evidence",
+      "description": "First-seen peer bootstrap with watcher evidence",
+      "scenario": "First contact with agent is validated through watcher evidence",
+      "input": {
+        "agent_id": "agt_C001",
+        "known_version_vector": null,
+        "requested_risk_level": "HIGH",
+        "watcher_evidence_refs": ["watcher_checkpoint_001"],
+        "mirror_checkpoint_refs": ["mirror_chk_001"]
+      },
+      "expected_output": {
+        "bootstrap_status": "FIRST_SEEN_LOW_RISK_ONLY",
+        "trust_level": "FIRST_SEEN_WITH_EVIDENCE",
+        "high_risk_allowed": false,
+        "requires_additional_confirmation": true,
+        "recommended_actions": ["DEFER_HIGH_RISK", "WAIT_FOR_MONOTONIC_STATE"]
+      }
+    }
+  ]
+}

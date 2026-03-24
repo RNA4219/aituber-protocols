@@ -62,6 +62,9 @@ export interface Ledger {
   /** チェックポイントを取得 */
   getCheckpoint(): string;
 
+  /** イベント数を取得 */
+  getEventCount(): number;
+
   /** イベント検証 */
   validateEvent(event: LedgerEvent): Promise<{ valid: boolean; errors: string[] }>;
 }
@@ -146,6 +149,10 @@ export class LedgerImpl implements Ledger {
 
   getCheckpoint(): string {
     return this.checkpoint;
+  }
+
+  getEventCount(): number {
+    return this.events.size;
   }
 
   async validateEvent(event: LedgerEvent): Promise<{ valid: boolean; errors: string[] }> {

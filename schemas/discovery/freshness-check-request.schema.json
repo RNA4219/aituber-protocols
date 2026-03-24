@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/freshness-check-request.schema.json",
+  "title": "Freshness Check Request",
+  "description": "Request to verify freshness status for high-risk operations",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_risk_level": {
+      "type": "string",
+      "enum": ["low", "high"]
+    },
+    "known_revocation_epoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "known_identity_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "known_ledger_checkpoint": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": ["agent_id", "required_risk_level"]
+}

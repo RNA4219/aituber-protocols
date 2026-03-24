@@ -1,0 +1,269 @@
+{
+  "$comment": "Quarantine Flow Example - Agent quarantine and recovery process",
+  "flow_description": "侵害疑いから隔離、回復までのフロー例",
+  "quarantine_scenarios": [
+    {
+      "scenario_name": "soft_quarantine_binding_suspected",
+      "description": "platform binding偽装疑いによるソフト隔離",
+      "trigger": {
+        "event_type": "compromise.reported",
+        "payload": {
+          "compromise_scope": "platform_binding",
+          "severity": "medium",
+          "detected_at": "2026-03-24T14:00:00Z",
+          "effective_at": "2026-03-24T14:05:00Z",
+          "reported_reason": "Suspicious binding update detected for X account. IP address mismatch with known patterns.",
+          "revocation_epoch": 16,
+          "recommended_actions": [
+            "verify_binding_authenticity",
+            "contact_controller"
+          ],
+          "quarantine_recommended": true
+        }
+      },
+      "quarantine_event": {
+        "event_id": "evt-quarantine-soft-001",
+        "event_type": "agent.quarantined",
+        "agent_id": "agent-aituber-hanako-001",
+        "event_time": "2026-03-24T14:05:00Z",
+        "payload": {
+          "quarantine_reason": "Platform binding suspected hijack - soft quarantine for investigation",
+          "quarantine_level": "soft",
+          "effective_at": "2026-03-24T14:05:00Z",
+          "revocation_epoch": 16,
+          "policy_epoch": 7,
+          "high_risk_blocked": true,
+          "capability_restrictions": [
+            "binding.update",
+            "collab.accept"
+          ],
+          "exchange_blocked_message_types": [
+            "binding.update"
+          ],
+          "exit_conditions": [
+            "binding_verification_passed",
+            "manual_review_approval",
+            "recovery.completed"
+          ]
+        }
+      },
+      "agent_state_transition": {
+        "from": "ACTIVE",
+        "to": "QUARANTINED_SOFT"
+      },
+      "allowed_operations": {
+        "low_risk": {
+          "allowed": true,
+          "capabilities": [
+            "chat.basic",
+            "profile.read",
+            "status.share"
+          ]
+        },
+        "high_risk": {
+          "allowed": false,
+          "blocked_capabilities": [
+            "memory.exchange",
+            "collab.accept",
+            "binding.update"
+          ]
+        }
+      },
+      "resolution": {
+        "type": "binding_verified",
+        "resolved_at": "2026-03-24T15:30:00Z",
+        "new_state": "ACTIVE",
+        "details": "Binding verified as legitimate. Controller confirmed update from new location."
+      }
+    },
+    {
+      "scenario_name": "hard_quarantine_key_compromised",
+      "description": "operation key漏洩確定によるハード隔離",
+      "trigger": {
+        "event_type": "compromise.reported",
+        "payload": {
+          "compromise_scope": "operation_key",
+          "severity": "critical",
+          "detected_at": "2026-03-24T16:00:00Z",
+          "effective_at": "2026-03-24T16:00:00Z",
+          "suspected_since": "2026-03-24T15:30:00Z",
+          "reported_reason": "Operation key found in public repository. Confirmed exfiltration via git commit history analysis.",
+          "revocation_epoch": 17,
+          "recommended_actions": [
+            "revoke_all_keys",
+            "quarantine_agent",
+            "initiate_recovery",
+            "rotate_all_keys"
+          ],
+          "quarantine_recommended": true
+        }
+      },
+      "quarantine_event": {
+        "event_id": "evt-quarantine-hard-001",
+        "event_type": "agent.quarantined",
+        "agent_id": "agent-aituber-hanako-001",
+        "event_time": "2026-03-24T16:00:00Z",
+        "payload": {
+          "quarantine_reason": "Critical: Operation key confirmed compromised - hard quarantine for damage control",
+          "quarantine_level": "hard",
+          "effective_at": "2026-03-24T16:00:00Z",
+          "revocation_epoch": 17,
+          "policy_epoch": 8,
+          "high_risk_blocked": true,
+          "capability_restrictions": [
+            "memory.exchange",
+            "collab.invite",
+            "collab.accept",
+            "binding.update",
+            "profile.write",
+            "status.share"
+          ],
+          "exchange_blocked_message_types": [
+            "memory.exchange",
+            "collab.invite",
+            "collab.accept",
+            "binding.update",
+            "profile.response"
+          ],
+          "exit_conditions": [
+            "recovery.completed",
+            "manual_review_approval_with_new_keys"
+          ]
+        }
+      },
+      "agent_state_transition": {
+        "from": "ACTIVE",
+        "to": "QUARANTINED_HARD"
+      },
+      "allowed_operations": {
+        "low_risk": {
+          "allowed": false,
+          "message": "All new sessions blocked in hard quarantine"
+        },
+        "high_risk": {
+          "allowed": false,
+          "message": "All high-risk operations blocked"
+        }
+      },
+      "session_termination": {
+        "terminated_sessions": [
+          {
+            "session_id": "session-active-001",
+            "terminated_at": "2026-03-24T16:00:05Z",
+            "reason": "HARD_QUARANTINE"
+          },
+          {
+            "session_id": "session-active-002",
+            "terminated_at": "2026-03-24T16:00:05Z",
+            "reason": "HARD_QUARANTINE"
+          }
+        ],
+        "total_terminated": 2
+      },
+      "resolution": {
+        "type": "recovery",
+        "recovery_id": "recovery-20260324-002",
+        "initiated_at": "2026-03-24T16:10:00Z",
+        "completed_at": "2026-03-24T18:00:00Z",
+        "new_state": "ACTIVE",
+        "details": "Full recovery completed. All keys rotated. Bindings reverified."
+      }
+    }
+  ],
+  "quarantine_levels_comparison": {
+    "soft": {
+      "description": "侵害疑いまたは軽度不整合によりhigh-riskを禁止し、low-riskのみ限定継続",
+      "high_risk_blocked": true,
+      "new_sessions": "allowed_low_risk_only",
+      "existing_sessions": "downgraded_to_low_risk",
+      "exit_conditions": [
+        "verification_passed",
+        "suspicion_cleared",
+        "recovery.completed"
+      ]
+    },
+    "hard": {
+      "description": "重大侵害疑い。新規セッション原則禁止。既存セッション停止対象",
+      "high_risk_blocked": true,
+      "new_sessions": "blocked",
+      "existing_sessions": "terminated",
+      "exit_conditions": [
+        "recovery.completed",
+        "manual_review_approval"
+      ]
+    },
+    "full": {
+      "description": "完全停止。緊急事態用",
+      "high_risk_blocked": true,
+      "new_sessions": "blocked",
+      "existing_sessions": "terminated",
+      "exit_conditions": [
+        "manual_review_approval",
+        "root_key_recovery"
+      ]
+    }
+  },
+  "state_machine_reference": {
+    "agent_state_transitions": [
+      {
+        "from": "ACTIVE",
+        "event": "compromise.reported (medium)",
+        "to": "QUARANTINED_SOFT"
+      },
+      {
+        "from": "ACTIVE",
+        "event": "compromise.reported (high/critical)",
+        "to": "QUARANTINED_HARD"
+      },
+      {
+        "from": "QUARANTINED_SOFT",
+        "event": "severity_escalated",
+        "to": "QUARANTINED_HARD"
+      },
+      {
+        "from": "QUARANTINED_SOFT",
+        "event": "suspicion_cleared",
+        "to": "ACTIVE"
+      },
+      {
+        "from": "QUARANTINED_HARD",
+        "event": "recovery.initiated",
+        "to": "RECOVERING"
+      },
+      {
+        "from": "RECOVERING",
+        "event": "recovery.completed",
+        "to": "ACTIVE"
+      }
+    ]
+  },
+  "exit_condition_requirements": {
+    "verification_passed": {
+      "description": "バインディングまたは身元の再検証が成功",
+      "required_evidence": [
+        "fresh_revocation_proof",
+        "binding_verification_signature"
+      ]
+    },
+    "recovery.completed": {
+      "description": "回復フローが完了",
+      "required_events": [
+        "key.revoked",
+        "recovery.initiated",
+        "recovery.completed"
+      ],
+      "required_conditions": [
+        "revocation_epoch_increased",
+        "new_keys_registered",
+        "bindings_reverified"
+      ]
+    },
+    "manual_review_approval": {
+      "description": "管理者による手動レビューと承認",
+      "required_evidence": [
+        "admin_signature",
+        "audit_log_entry"
+      ]
+    }
+  }
+}

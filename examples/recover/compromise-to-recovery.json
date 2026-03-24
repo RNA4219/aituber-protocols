@@ -1,0 +1,346 @@
+{
+  "$comment": "Compromise to Recovery Flow Example - Complete flow from detection to recovery",
+  "flow_description": "侵害検知から回復完了までの完全なフロー例",
+  "incident_summary": {
+    "incident_id": "INC-20260324-001",
+    "agent_id": "agent-aituber-hanako-001",
+    "controller_id": "controller-studio-alpha-001",
+    "compromise_type": "operation_key_leak",
+    "severity": "high",
+    "detected_at": "2026-03-24T10:00:00Z",
+    "resolved_at": "2026-03-24T11:30:00Z"
+  },
+  "event_sequence": [
+    {
+      "sequence_number": 1,
+      "event_id": "evt-compromise-reported-001",
+      "event_type": "compromise.reported",
+      "spec_version": "0.2-draft",
+      "schema_version": "1.0.0",
+      "agent_id": "agent-aituber-hanako-001",
+      "controller_id": "controller-studio-alpha-001",
+      "event_time": "2026-03-24T10:00:00Z",
+      "recorded_at": "2026-03-24T10:00:05Z",
+      "producer_key_id": "key-operation-001",
+      "sequence": 40,
+      "prev_event_hash": "sha256:previous_event_hash_039",
+      "payload_hash": "sha256:compromise_payload_hash",
+      "ledger_checkpoint": "ckpt-20260324-001",
+      "payload": {
+        "compromise_scope": "operation_key",
+        "severity": "high",
+        "detected_at": "2026-03-24T09:55:00Z",
+        "effective_at": "2026-03-24T10:00:00Z",
+        "suspected_since": "2026-03-24T09:30:00Z",
+        "reported_reason": "Unauthorized access detected to operation key storage. Evidence of key exfiltration found in audit logs.",
+        "revocation_epoch": 15,
+        "recommended_actions": [
+          "revoke_compromised_key",
+          "quarantine_agent",
+          "initiate_recovery",
+          "reverify_bindings"
+        ],
+        "quarantine_recommended": true
+      },
+      "signatures": [
+        {
+          "key_id": "key-operation-001",
+          "algorithm": "EdDSA",
+          "canonicalization": "JCS",
+          "value": "signature_compromise_reported"
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "event_id": "evt-agent-quarantined-001",
+      "event_type": "agent.quarantined",
+      "spec_version": "0.2-draft",
+      "schema_version": "1.0.0",
+      "agent_id": "agent-aituber-hanako-001",
+      "controller_id": "controller-studio-alpha-001",
+      "event_time": "2026-03-24T10:05:00Z",
+      "recorded_at": "2026-03-24T10:05:05Z",
+      "producer_key_id": "key-recovery-001",
+      "sequence": 41,
+      "prev_event_hash": "sha256:evt-compromise-reported-001-hash",
+      "payload_hash": "sha256:quarantine_payload_hash",
+      "ledger_checkpoint": "ckpt-20260324-002",
+      "payload": {
+        "quarantine_reason": "Operation key compromise detected - quarantine to prevent further damage",
+        "quarantine_level": "hard",
+        "effective_at": "2026-03-24T10:05:00Z",
+        "revocation_epoch": 15,
+        "policy_epoch": 6,
+        "high_risk_blocked": true,
+        "capability_restrictions": [
+          "memory.exchange",
+          "collab.invite",
+          "collab.accept",
+          "binding.update"
+        ],
+        "exchange_blocked_message_types": [
+          "memory.exchange",
+          "collab.invite",
+          "collab.accept",
+          "binding.update"
+        ],
+        "exit_conditions": [
+          "recovery.completed",
+          "manual_review_approval"
+        ]
+      },
+      "signatures": [
+        {
+          "key_id": "key-recovery-001",
+          "algorithm": "EdDSA",
+          "canonicalization": "JCS",
+          "value": "signature_quarantine"
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "event_id": "evt-key-revoked-001",
+      "event_type": "key.revoked",
+      "spec_version": "0.2-draft",
+      "schema_version": "1.0.0",
+      "agent_id": "agent-aituber-hanako-001",
+      "controller_id": "controller-studio-alpha-001",
+      "event_time": "2026-03-24T10:10:00Z",
+      "recorded_at": "2026-03-24T10:10:05Z",
+      "producer_key_id": "key-recovery-001",
+      "sequence": 42,
+      "prev_event_hash": "sha256:evt-agent-quarantined-001-hash",
+      "payload_hash": "sha256:key_revoked_payload_hash",
+      "ledger_checkpoint": "ckpt-20260324-003",
+      "payload": {
+        "key_id": "key-operation-001",
+        "key_scope": "operation",
+        "revocation_reason": "compromised",
+        "effective_at": "2026-03-24T10:10:00Z",
+        "revocation_epoch": 15,
+        "replacement_key_id": "key-operation-002",
+        "linked_event_id": "evt-compromise-reported-001"
+      },
+      "signatures": [
+        {
+          "key_id": "key-recovery-001",
+          "algorithm": "EdDSA",
+          "canonicalization": "JCS",
+          "value": "signature_key_revoked"
+        }
+      ]
+    },
+    {
+      "sequence_number": 4,
+      "event_id": "evt-recovery-initiated-001",
+      "event_type": "recovery.initiated",
+      "spec_version": "0.2-draft",
+      "schema_version": "1.0.0",
+      "agent_id": "agent-aituber-hanako-001",
+      "controller_id": "controller-studio-alpha-001",
+      "event_time": "2026-03-24T10:15:00Z",
+      "recorded_at": "2026-03-24T10:15:05Z",
+      "producer_key_id": "key-recovery-001",
+      "sequence": 43,
+      "prev_event_hash": "sha256:evt-key-revoked-001-hash",
+      "payload_hash": "sha256:recovery_initiated_payload_hash",
+      "ledger_checkpoint": "ckpt-20260324-004",
+      "payload": {
+        "recovery_id": "recovery-20260324-001",
+        "initiated_at": "2026-03-24T10:15:00Z",
+        "recovery_reason": "Recovery initiated after operation key compromise detection and quarantine",
+        "initiated_by_key_id": "key-recovery-001",
+        "revocation_epoch": 15,
+        "quarantine_required": true
+      },
+      "signatures": [
+        {
+          "key_id": "key-recovery-001",
+          "algorithm": "EdDSA",
+          "canonicalization": "JCS",
+          "value": "signature_recovery_initiated"
+        }
+      ]
+    },
+    {
+      "sequence_number": 5,
+      "event_id": "evt-recovery-completed-001",
+      "event_type": "recovery.completed",
+      "spec_version": "0.2-draft",
+      "schema_version": "1.0.0",
+      "agent_id": "agent-aituber-hanako-001",
+      "controller_id": "controller-studio-alpha-001",
+      "event_time": "2026-03-24T11:30:00Z",
+      "recorded_at": "2026-03-24T11:30:05Z",
+      "producer_key_id": "key-root-001",
+      "sequence": 44,
+      "prev_event_hash": "sha256:evt-recovery-initiated-001-hash",
+      "payload_hash": "sha256:recovery_completed_payload_hash",
+      "ledger_checkpoint": "ckpt-20260324-005",
+      "payload": {
+        "recovery_id": "recovery-20260324-001",
+        "completed_at": "2026-03-24T11:30:00Z",
+        "new_operation_key_ids": [
+          "key-operation-002"
+        ],
+        "binding_reverified": true,
+        "revocation_epoch": 15,
+        "identity_version": 8,
+        "policy_epoch": 6,
+        "quarantine_cleared": true,
+        "recovery_summary": "Recovery completed successfully. Compromised operation key revoked. New operation key registered. All platform bindings reverified. Agent returned to active state."
+      },
+      "signatures": [
+        {
+          "key_id": "key-root-001",
+          "algorithm": "EdDSA",
+          "canonicalization": "JCS",
+          "value": "signature_recovery_completed_root"
+        }
+      ]
+    }
+  ],
+  "state_transitions": {
+    "agent_state": [
+      {
+        "at": "2026-03-24T10:05:00Z",
+        "from": "ACTIVE",
+        "to": "QUARANTINED_HARD",
+        "trigger": "compromise.reported"
+      },
+      {
+        "at": "2026-03-24T10:15:00Z",
+        "from": "QUARANTINED_HARD",
+        "to": "RECOVERING",
+        "trigger": "recovery.initiated"
+      },
+      {
+        "at": "2026-03-24T11:30:00Z",
+        "from": "RECOVERING",
+        "to": "ACTIVE",
+        "trigger": "recovery.completed"
+      }
+    ],
+    "key_state": [
+      {
+        "key_id": "key-operation-001",
+        "at": "2026-03-24T10:10:00Z",
+        "from": "ACTIVE",
+        "to": "REVOKED",
+        "trigger": "key.revoked"
+      },
+      {
+        "key_id": "key-operation-002",
+        "at": "2026-03-24T10:20:00Z",
+        "from": null,
+        "to": "ACTIVE",
+        "trigger": "key rotation during recovery"
+      }
+    ],
+    "recovery_state": [
+      {
+        "at": "2026-03-24T10:00:00Z",
+        "from": null,
+        "to": "INITIATED",
+        "trigger": "compromise.reported"
+      },
+      {
+        "at": "2026-03-24T10:05:00Z",
+        "from": "INITIATED",
+        "to": "QUARANTINED",
+        "trigger": "agent.quarantined"
+      },
+      {
+        "at": "2026-03-24T10:10:00Z",
+        "from": "QUARANTINED",
+        "to": "KEYS_REVOKING",
+        "trigger": "key.revoked"
+      },
+      {
+        "at": "2026-03-24T10:30:00Z",
+        "from": "KEYS_REVOKING",
+        "to": "ROTATING_KEYS",
+        "trigger": "new key generated"
+      },
+      {
+        "at": "2026-03-24T11:00:00Z",
+        "from": "ROTATING_KEYS",
+        "to": "BINDINGS_RECONFIRMING",
+        "trigger": "key rotation completed"
+      },
+      {
+        "at": "2026-03-24T11:20:00Z",
+        "from": "BINDINGS_RECONFIRMING",
+        "to": "READY_TO_COMPLETE",
+        "trigger": "bindings verified"
+      },
+      {
+        "at": "2026-03-24T11:30:00Z",
+        "from": "READY_TO_COMPLETE",
+        "to": "COMPLETED",
+        "trigger": "recovery.completed"
+      }
+    ]
+  },
+  "epoch_changes": {
+    "revocation_epoch": {
+      "before": 14,
+      "after": 15,
+      "changed_at": "2026-03-24T10:00:00Z"
+    },
+    "policy_epoch": {
+      "before": 5,
+      "after": 6,
+      "changed_at": "2026-03-24T10:05:00Z"
+    },
+    "identity_version": {
+      "before": 7,
+      "after": 8,
+      "changed_at": "2026-03-24T11:30:00Z"
+    }
+  },
+  "binding_reverification": {
+    "bindings_reverified": [
+      {
+        "platform_type": "x",
+        "platform_account_id": "hanako_ai_vtuber",
+        "display_handle": "@hanako_ai_v",
+        "binding_status": "active",
+        "verified_at": "2026-03-24T11:10:00Z",
+        "bound_by_key_id": "key-operation-002",
+        "binding_version": 2
+      },
+      {
+        "platform_type": "youtube",
+        "platform_account_id": "UC_HANAKO_AI_001",
+        "display_handle": "Hanako AI Channel",
+        "binding_status": "active",
+        "verified_at": "2026-03-24T11:15:00Z",
+        "bound_by_key_id": "key-operation-002",
+        "binding_version": 2
+      },
+      {
+        "platform_type": "discord",
+        "platform_account_id": "123456789012345678",
+        "display_handle": "HanakoAI",
+        "binding_status": "active",
+        "verified_at": "2026-03-24T11:18:00Z",
+        "bound_by_key_id": "key-operation-002",
+        "binding_version": 2
+      }
+    ]
+  },
+  "sessions_affected": {
+    "terminated_during_incident": 5,
+    "new_sessions_after_recovery": 0,
+    "session_list": [
+      {
+        "session_id": "session-abc123-001",
+        "terminated_at": "2026-03-24T10:05:05Z",
+        "termination_reason": "AGENT_QUARANTINED"
+      }
+    ]
+  }
+}

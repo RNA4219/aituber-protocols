@@ -1,0 +1,329 @@
+{
+  "$comment": "Discord Platform Discovery Flow Example",
+  "flow_id": "discord_discovery_001",
+  "description": "DiscordからのAgent発見フロー - Bot/Slash Command経由で認証済みAgentを特定し、コミュニティ参加フローを実現",
+  "spec_version": "0.2",
+  "scenario": "success",
+  "steps": [
+    {
+      "step_number": 1,
+      "phase": "discovery",
+      "description": "Discordサーバー上でBot経由でAgentを発見",
+      "platform_context": {
+        "platform_type": "discord",
+        "platform_account_id": "987654321098765432",
+        "display_handle": "shiro_chan_bot",
+        "guild_id": "123456789012345678",
+        "channel_id": "234567890123456789",
+        "discovery_method": "slash_command",
+        "command_used": {
+          "command": "/aituber verify",
+          "user_input": "@shiro_chan_bot",
+          "mentions": [
+            {
+              "user_id": "987654321098765432",
+              "username": "shiro_chan_bot",
+              "bot": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step_number": 2,
+      "phase": "identity_resolution",
+      "description": "Botのプロフィールまたはステータスから正本URLを取得",
+      "request": {
+        "discovery_source": {
+          "platform_type": "discord",
+          "platform_account_id": "987654321098765432",
+          "display_handle": "shiro_chan_bot"
+        },
+        "canonical_hint": "https://identity.example.com/.well-known/aituber/agt_shiro_chan.json",
+        "required_freshness": "LOW"
+      },
+      "response": {
+        "resolution_status": "RESOLVED",
+        "identity_manifest_url": "https://identity.example.com/.well-known/aituber/agt_shiro_chan.json",
+        "identity_manifest": {
+          "spec_version": "0.2",
+          "manifest_version": 2,
+          "controller_id": "ctrl_shiro_studio",
+          "agent_id": "agt_shiro_chan",
+          "persona_id": "per_shiro_v2",
+          "persona_profile_hash": "sha256:fed0987654321098765432109876543210987654321abcdef0987654321abcd",
+          "identity_version": 8,
+          "updated_at": "2026-03-24T09:30:00Z",
+          "ledger_ref": "https://ledger.example.com/agents/agt_shiro_chan",
+          "revocation_ref": "https://revocation.example.com/status/agt_shiro_chan",
+          "keys": [
+            {
+              "key_id": "opk_shiro_002",
+              "scope": "operation",
+              "algorithm": "ed25519",
+              "public_key": "MCowBQYDK2VwAyEAxyz789abc012def345ghi678jkl901mno234pqr567stu890vw=",
+              "status": "active",
+              "valid_from": "2026-02-15T00:00:00Z"
+            }
+          ],
+          "platform_bindings": [
+            {
+              "platform_type": "discord",
+              "platform_account_id": "987654321098765432",
+              "display_handle": "shiro_chan_bot",
+              "binding_status": "active",
+              "verified_at": "2026-03-15T14:00:00Z",
+              "bound_by_key_id": "opk_shiro_002",
+              "binding_version": 1
+            },
+            {
+              "platform_type": "youtube",
+              "platform_account_id": "UCshirochanexample",
+              "display_handle": "ShiroChanOfficial",
+              "binding_status": "active",
+              "verified_at": "2026-03-15T14:05:00Z",
+              "bound_by_key_id": "opk_shiro_002",
+              "binding_version": 1
+            }
+          ],
+          "service_endpoints": [
+            {
+              "name": "auth",
+              "url": "https://auth.example.com/shiro_chan",
+              "kind": "challenge_response"
+            },
+            {
+              "name": "exchange",
+              "url": "https://exchange.example.com/shiro_chan",
+              "kind": "message_exchange"
+            }
+          ],
+          "capability_summary": [
+            "chat.basic",
+            "profile.read",
+            "status.share",
+            "collab.invite",
+            "memory.exchange.summary_only"
+          ],
+          "policy_ref": "https://policy.example.com/shiro_chan/v3",
+          "signatures": [
+            {
+              "key_id": "opk_shiro_002",
+              "algorithm": "ed25519",
+              "canonicalization": "jcs",
+              "value": "signature_value_def456..."
+            }
+          ]
+        },
+        "binding_match": true,
+        "warnings": []
+      }
+    },
+    {
+      "step_number": 3,
+      "phase": "challenge_issuance",
+      "description": "Discord Bot経由でChallengeを発行",
+      "request": {
+        "requesting_verifier_id": "agt_community_guardian",
+        "target_agent_id": "agt_shiro_chan",
+        "target_instance_id": "ins_shiro_discord_001",
+        "intent": "COMMUNITY_JOIN",
+        "required_capabilities": ["chat.basic", "profile.read"],
+        "required_risk_level": "low",
+        "session_pubkey": "ephemeral_pubkey_discord_abc...",
+        "nonce_ttl_seconds": 120
+      },
+      "response": {
+        "spec_version": "0.2",
+        "challenge_id": "chl_discord_20260324_001",
+        "verifier_id": "agt_community_guardian",
+        "target_agent_id": "agt_shiro_chan",
+        "target_instance_id": "ins_shiro_discord_001",
+        "nonce": "nonce_discord_xyz789...",
+        "issued_at": "2026-03-24T13:00:00Z",
+        "expires_at": "2026-03-24T13:02:00Z",
+        "intent": "COMMUNITY_JOIN",
+        "risk_level": "low",
+        "requested_capabilities": ["chat.basic", "profile.read"],
+        "epochs": {
+          "identity_version": 8,
+          "revocation_epoch": 5,
+          "policy_epoch": 2,
+          "session_epoch": 15,
+          "ledger_checkpoint": "chk_discord_20260324_0500"
+        },
+        "signature": {
+          "key_id": "opk_guardian_001",
+          "algorithm": "ed25519",
+          "canonicalization": "jcs",
+          "value": "challenge_sig_discord_123..."
+        }
+      }
+    },
+    {
+      "step_number": 4,
+      "phase": "proof_submission",
+      "description": "AgentによるProof返却 (Discord Bot経由)",
+      "request": {
+        "challenge_id": "chl_discord_20260324_001",
+        "proof": {
+          "spec_version": "0.2",
+          "proof_id": "prf_discord_20260324_001",
+          "challenge_id": "chl_discord_20260324_001",
+          "agent_id": "agt_shiro_chan",
+          "instance_id": "ins_shiro_discord_001",
+          "nonce": "nonce_discord_xyz789...",
+          "timestamp": "2026-03-24T13:00:45Z",
+          "expires_at": "2026-03-24T13:02:00Z",
+          "intent": "COMMUNITY_JOIN",
+          "capability_digest": "sha256:capability_hash_discord_456...",
+          "identity_version": 8,
+          "revocation_epoch": 5,
+          "policy_epoch": 2,
+          "session_epoch": 15,
+          "session_pubkey": {
+            "key_id": "spk_shiro_001",
+            "algorithm": "ed25519",
+            "public_key": "target_session_pubkey_discord_def...",
+            "valid_until": "2026-03-24T14:00:00Z"
+          },
+          "signature": {
+            "key_id": "opk_shiro_002",
+            "algorithm": "ed25519",
+            "canonicalization": "jcs",
+            "value": "proof_signature_discord_789..."
+          }
+        }
+      }
+    },
+    {
+      "step_number": 5,
+      "phase": "proof_verification",
+      "description": "Proof検証結果",
+      "response": {
+        "verification_status": "VERIFIED",
+        "verified_agent_id": "agt_shiro_chan",
+        "verified_instance_id": "ins_shiro_discord_001",
+        "risk_level": "low",
+        "freshness_status": "FRESH",
+        "capability_status": "MATCHED",
+        "version_check": {
+          "rollback_detected": false,
+          "epoch_mismatch": false,
+          "session_epoch_old": false,
+          "policy_mismatch": false
+        },
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "step_number": 6,
+      "phase": "session_creation",
+      "description": "Discord用セッション確立とロール付与",
+      "request": {
+        "verified_agent_id": "agt_shiro_chan",
+        "verified_instance_id": "ins_shiro_discord_001",
+        "peer_session_pubkey": "target_session_pubkey_discord_def...",
+        "risk_level": "low",
+        "capability_summary": {
+          "capabilities": ["chat.basic", "profile.read", "status.share"],
+          "capability_digest": "sha256:capability_hash_discord_456..."
+        },
+        "version_vector": {
+          "identity_version": 8,
+          "revocation_epoch": 5,
+          "policy_epoch": 2,
+          "session_epoch": 16,
+          "ledger_checkpoint": "chk_discord_20260324_0500"
+        }
+      },
+      "response": {
+        "spec_version": "0.2",
+        "session_id": "ses_discord_20260324_shiro_001",
+        "agent_id": "agt_shiro_chan",
+        "instance_id": "ins_shiro_discord_001",
+        "issued_at": "2026-03-24T13:00:48Z",
+        "expires_at": "2026-03-24T13:05:48Z",
+        "session_epoch": 16,
+        "revocation_epoch": 5,
+        "policy_epoch": 2,
+        "identity_version": 8,
+        "sequence": 0,
+        "capabilities": ["chat.basic", "profile.read", "status.share"],
+        "risk_level": "low",
+        "status": "active",
+        "ledger_checkpoint": "chk_discord_20260324_0500",
+        "signature": {
+          "key_id": "opk_guardian_001",
+          "algorithm": "ed25519",
+          "canonicalization": "jcs",
+          "value": "session_signature_discord_abc..."
+        }
+      }
+    },
+    {
+      "step_number": 7,
+      "phase": "exchange",
+      "description": "Exchange層 - Profile共有とコラボチャンネル入室",
+      "messages": [
+        {
+          "protocol_version": "0.2",
+          "message_id": "msg_discord_001",
+          "message_type": "hello",
+          "timestamp": "2026-03-24T13:00:50Z",
+          "agent_id": "agt_shiro_chan",
+          "instance_id": "ins_shiro_discord_001",
+          "session_id": "ses_discord_20260324_shiro_001",
+          "sequence": 1,
+          "signature_or_mac": "mac_discord_123...",
+          "body": {
+            "display_name": "Shiro Chan",
+            "capability_summary": {
+              "capabilities": ["chat.basic", "profile.read", "status.share"],
+              "capability_digest": "sha256:capability_hash_discord_456..."
+            },
+            "identity_version": 8,
+            "revocation_epoch": 5
+          }
+        },
+        {
+          "protocol_version": "0.2",
+          "message_id": "msg_discord_002",
+          "message_type": "profile.response",
+          "timestamp": "2026-03-24T13:00:52Z",
+          "agent_id": "agt_shiro_chan",
+          "instance_id": "ins_shiro_discord_001",
+          "session_id": "ses_discord_20260324_shiro_001",
+          "sequence": 2,
+          "signature_or_mac": "mac_discord_456...",
+          "body": {
+            "profile": {
+              "display_name": "Shiro Chan",
+              "summary": "AITuber / Music & Gaming enthusiast",
+              "platform_bindings": [
+                {
+                  "platform_type": "discord",
+                  "display_handle": "shiro_chan_bot"
+                },
+                {
+                  "platform_type": "youtube",
+                  "display_handle": "ShiroChanOfficial"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_duration_ms": 3800,
+    "status": "SUCCESS",
+    "platform_binding_verified": true,
+    "manifest_signature_valid": true,
+    "freshness_check_passed": true,
+    "session_established": true,
+    "discord_role_assigned": true
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/ledger/events/agent-quarantined.schema.json",
+  "title": "Ledger Event Payload - agent.quarantined",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "quarantine_reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "quarantine_level": {
+      "$ref": "../core/common.schema.json#/$defs/quarantineLevel"
+    },
+    "effective_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "revocation_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "policy_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "high_risk_blocked": {
+      "type": "boolean"
+    },
+    "capability_restrictions": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/capabilityName"
+      },
+      "default": []
+    },
+    "exchange_blocked_message_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "default": []
+    },
+    "exit_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "quarantine_reason",
+    "quarantine_level",
+    "effective_at",
+    "revocation_epoch"
+    ,"policy_epoch",
+    "high_risk_blocked"
+  ]
+}

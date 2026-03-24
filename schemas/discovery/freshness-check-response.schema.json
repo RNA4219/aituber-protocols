@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/freshness-check-response.schema.json",
+  "title": "Freshness Check Response",
+  "description": "Response containing freshness status and current epoch values",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "freshness_status": {
+      "type": "string",
+      "enum": ["FRESH", "STALE", "UNKNOWN"]
+    },
+    "current_agent_status": {
+      "type": "string",
+      "enum": ["active", "quarantined", "revoked", "unknown"]
+    },
+    "current_quarantine_level": {
+      "type": "string",
+      "enum": ["none", "soft", "hard"]
+    },
+    "current_revocation_epoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_identity_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_policy_epoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ledger_checkpoint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fresh_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["freshness_status"]
+}

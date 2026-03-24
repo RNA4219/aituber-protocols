@@ -55,6 +55,7 @@ function createMockLedger(): Ledger {
     getEvent: vi.fn(),
     getAgentEvents: vi.fn(),
     getCheckpoint: vi.fn(),
+    getEventCount: vi.fn(),
     validateEvent: vi.fn(),
   };
 }

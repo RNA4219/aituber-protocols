@@ -1,0 +1,389 @@
+{
+  "$schema": "https://example.com/schemas/test-vectors/quarantine-vectors.schema.json",
+  "schema_version": "0.2",
+  "description": "Quarantine test vectors for AITuber authentication protocol",
+  "vectors": [
+    {
+      "id": "QUAR-001",
+      "name": "quarantine_initiation_key_compromise",
+      "description": "Agent enters quarantine after key compromise report",
+      "scenario": "Operation key compromise reported, agent enters HARD quarantine",
+      "input": {
+        "compromise_report": {
+          "event_type": "compromise.reported",
+          "agent_id": "agt_B001",
+          "compromise_type": "OPERATION_KEY_COMPROMISED",
+          "key_id": "opk_001",
+          "reported_at": "2026-03-24T12:00:00Z"
+        },
+        "pre_quarantine_state": {
+          "agent_status": "ACTIVE",
+          "quarantine_status": "NONE",
+          "active_sessions": ["ses_001", "ses_002", "ses_003"],
+          "effective_capabilities": ["chat.basic", "profile.read", "collab.invite", "memory.exchange"]
+        }
+      },
+      "expected_output": {
+        "post_quarantine_state": {
+          "agent_status": "QUARANTINED",
+          "quarantine_status": "HARD",
+          "quarantine_reason": "OPERATION_KEY_COMPROMISED",
+          "quarantined_at": "2026-03-24T12:00:05Z"
+        },
+        "session_actions": {
+          "sessions_terminated": ["ses_001", "ses_002", "ses_003"],
+          "termination_reason": "QUARANTINE"
+        },
+        "capability_restrictions": {
+          "effective_capabilities": ["profile.read"],
+          "denied_capabilities": ["collab.invite", "memory.exchange"]
+        },
+        "ledger_event": {
+          "event_type": "agent.quarantined",
+          "agent_id": "agt_B001",
+          "quarantine_status": "HARD"
+        }
+      }
+    },
+    {
+      "id": "QUAR-002",
+      "name": "quarantine_high_risk_operation_denied",
+      "description": "High-risk operation denied for quarantined agent",
+      "scenario": "Quarantined agent attempts high-risk operation and is rejected",
+      "input": {
+        "agent_state": {
+          "agent_id": "agt_B001",
+          "agent_status": "QUARANTINED",
+          "quarantine_status": "HARD",
+          "quarantine_reason": "OPERATION_KEY_COMPROMISED"
+        },
+        "operation_request": {
+          "type": "COLLAB_INVITE",
+          "risk_level": "HIGH",
+          "requested_capabilities": ["collab.invite"]
+        }
+      },
+      "expected_output": {
+        "operation_status": "REJECTED",
+        "error": {
+          "code": "AGENT_QUARANTINED",
+          "message": "Agent is in quarantine - high-risk operations not allowed",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "quarantine_status": "HARD",
+            "quarantine_reason": "OPERATION_KEY_COMPROMISED"
+          }
+        }
+      }
+    },
+    {
+      "id": "QUAR-003",
+      "name": "quarantine_low_risk_capability_downgrade",
+      "description": "Low-risk operation with capability downgrade for quarantined agent",
+      "scenario": "Quarantined agent can perform limited low-risk operations with downgraded capabilities",
+      "input": {
+        "agent_state": {
+          "agent_id": "agt_B001",
+          "agent_status": "QUARANTINED",
+          "quarantine_status": "SOFT"
+        },
+        "operation_request": {
+          "type": "PROFILE_READ",
+          "risk_level": "LOW",
+          "requested_capabilities": ["profile.read", "status.share"]
+        }
+      },
+      "expected_output": {
+        "operation_status": "ALLOWED",
+        "capability_status": "DOWNGRADED",
+        "granted_capabilities": ["profile.read"],
+        "denied_capabilities": ["status.share"],
+        "warning": "agent_in_quarantine_capability_restricted"
+      }
+    },
+    {
+      "id": "QUAR-004",
+      "name": "quarantine_memory_exchange_blocked",
+      "description": "Memory exchange blocked for quarantined agent",
+      "scenario": "Quarantined agent cannot exchange memory with other agents",
+      "input": {
+        "agent_state": {
+          "agent_id": "agt_B001",
+          "agent_status": "QUARANTINED",
+          "quarantine_status": "HARD"
+        },
+        "memory_exchange_request": {
+          "target_agent_id": "agt_A001",
+          "exchange_type": "FULL",
+          "risk_level": "HIGH"
+        }
+      },
+      "expected_output": {
+        "exchange_status": "REJECTED",
+        "error": {
+          "code": "AGENT_QUARANTINED",
+          "message": "Memory exchange not allowed for quarantined agents",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "QUAR-005",
+      "name": "quarantine_invite_accept_blocked",
+      "description": "Collaboration invite acceptance blocked for quarantined agent",
+      "scenario": "Quarantined agent cannot accept collaboration invites",
+      "input": {
+        "agent_state": {
+          "agent_id": "agt_B001",
+          "agent_status": "QUARANTINED"
+        },
+        "invite_acceptance": {
+          "invite_id": "inv_001",
+          "risk_level": "HIGH"
+        }
+      },
+      "expected_output": {
+        "acceptance_status": "REJECTED",
+        "error": {
+          "code": "AGENT_QUARANTINED",
+          "message": "Collaboration acceptance not allowed for quarantined agents",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "QUAR-006",
+      "name": "quarantine_binding_update_blocked",
+      "description": "Platform binding update blocked for quarantined agent",
+      "scenario": "Quarantined agent cannot update platform bindings",
+      "input": {
+        "agent_state": {
+          "agent_id": "agt_B001",
+          "agent_status": "QUARANTINED"
+        },
+        "binding_update_request": {
+          "action": "ADD",
+          "platform_type": "x",
+          "platform_account_id": "new_handle"
+        }
+      },
+      "expected_output": {
+        "update_status": "REJECTED",
+        "error": {
+          "code": "AGENT_QUARANTINED",
+          "message": "Platform binding updates not allowed for quarantined agents",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "QUAR-007",
+      "name": "recovery_completion",
+      "description": "Successful recovery completion removes quarantine",
+      "scenario": "Agent completes recovery process and quarantine is lifted",
+      "input": {
+        "recovery_process": {
+          "recovery_id": "rcv_001",
+          "agent_id": "agt_B001",
+          "status": "IN_PROGRESS",
+          "completed_steps": [
+            "REVOKE_COMPROMISED_KEYS",
+            "REGISTER_NEW_KEYS",
+            "RECONFIRM_BINDINGS"
+          ],
+          "remaining_steps": []
+        },
+        "complete_recovery_request": {
+          "recovery_id": "rcv_001",
+          "agent_id": "agt_B001",
+          "new_operation_key_id": "opk_002",
+          "reconfirmed_bindings": [
+            {
+              "platform_type": "discord",
+              "platform_account_id": "1234567890"
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "recovery_status": "COMPLETED",
+        "agent_status": "ACTIVE",
+        "quarantine_status": "NONE",
+        "new_revocation_epoch": 16,
+        "new_identity_version": 21,
+        "ledger_events": [
+          {
+            "event_type": "recovery.completed",
+            "agent_id": "agt_B001"
+          }
+        ],
+        "sessions": {
+          "previous_sessions_terminated": true,
+          "new_session_required": true
+        }
+      }
+    },
+    {
+      "id": "QUAR-008",
+      "name": "soft_quarantine_to_hard_escalation",
+      "description": "Escalation from soft to hard quarantine",
+      "scenario": "Agent in soft quarantine escalates to hard quarantine due to additional compromise evidence",
+      "input": {
+        "current_state": {
+          "agent_id": "agt_B001",
+          "quarantine_status": "SOFT",
+          "quarantine_reason": "SUSPECTED_COMPROMISE"
+        },
+        "escalation_event": {
+          "type": "ADDITIONAL_COMPROMISE_EVIDENCE",
+          "evidence": "root_key_usage_from_unknown_location",
+          "reported_at": "2026-03-24T13:00:00Z"
+        }
+      },
+      "expected_output": {
+        "new_quarantine_status": "HARD",
+        "agent_status": "COMPROMISED",
+        "additional_restrictions": {
+          "all_operations_blocked": true,
+          "recovery_key_required": true
+        },
+        "watcher_alert": {
+          "alert_type": "QUARANTINE_ESCALATION",
+          "severity": "CRITICAL"
+        }
+      }
+    },
+    {
+      "id": "QUAR-009",
+      "name": "quarantine_recovery_sequence_incomplete",
+      "description": "Recovery attempt fails due to incomplete sequence",
+      "scenario": "Recovery completion attempted before all steps are finished",
+      "input": {
+        "recovery_process": {
+          "recovery_id": "rcv_001",
+          "status": "IN_PROGRESS",
+          "completed_steps": ["REVOKE_COMPROMISED_KEYS"],
+          "remaining_steps": ["REGISTER_NEW_KEYS", "RECONFIRM_BINDINGS"]
+        },
+        "complete_request": {
+          "recovery_id": "rcv_001"
+        }
+      },
+      "expected_output": {
+        "recovery_status": "REJECTED",
+        "error": {
+          "code": "RECOVERY_SEQUENCE_INVALID",
+          "message": "Recovery sequence incomplete - required steps not completed",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "missing_steps": ["REGISTER_NEW_KEYS", "RECONFIRM_BINDINGS"]
+          }
+        }
+      }
+    },
+    {
+      "id": "QUAR-010",
+      "name": "quarantine_new_session_denied",
+      "description": "New session creation denied for quarantined agent",
+      "scenario": "Quarantined agent cannot establish new sessions",
+      "input": {
+        "agent_state": {
+          "agent_id": "agt_B001",
+          "agent_status": "QUARANTINED",
+          "quarantine_status": "HARD"
+        },
+        "session_request": {
+          "verifier_id": "agt_A001",
+          "intent": "BASIC_COMMUNICATION",
+          "risk_level": "LOW"
+        }
+      },
+      "expected_output": {
+        "session_status": "REJECTED",
+        "error": {
+          "code": "AGENT_QUARANTINED",
+          "message": "New session creation not allowed for quarantined agents",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "QUAR-011",
+      "name": "quarantine_multiple_compromise_types",
+      "description": "Quarantine with multiple compromise types",
+      "scenario": "Agent quarantined due to multiple simultaneous compromise reports",
+      "input": {
+        "compromise_reports": [
+          {
+            "type": "OPERATION_KEY_COMPROMISED",
+            "key_id": "opk_001",
+            "reported_at": "2026-03-24T12:00:00Z"
+          },
+          {
+            "type": "PLATFORM_BINDING_COMPROMISED",
+            "platform_type": "discord",
+            "platform_account_id": "1234567890",
+            "reported_at": "2026-03-24T12:01:00Z"
+          }
+        ]
+      },
+      "expected_output": {
+        "quarantine_status": "HARD",
+        "compromise_types": ["OPERATION_KEY_COMPROMISED", "PLATFORM_BINDING_COMPROMISED"],
+        "recovery_requirements": [
+          "REVOKE_COMPROMISED_KEYS",
+          "REVOKE_COMPROMISED_BINDINGS",
+          "REGISTER_NEW_KEYS",
+          "RECONFIRM_REMAINING_BINDINGS",
+          "UPDATE_REVOCATION_EPOCH"
+        ]
+      }
+    },
+    {
+      "id": "QUAR-012",
+      "name": "quarantine_partial_recovery",
+      "description": "Partial recovery with some bindings restored",
+      "scenario": "Recovery completed for some bindings while others remain compromised",
+      "input": {
+        "recovery_state": {
+          "recovery_id": "rcv_001",
+          "agent_id": "agt_B001",
+          "bindings": [
+            {
+              "platform_type": "discord",
+              "status": "RECONFIRMED"
+            },
+            {
+              "platform_type": "x",
+              "status": "REVOKED"
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "recovery_status": "PARTIALLY_COMPLETED",
+        "agent_status": "ACTIVE",
+        "quarantine_status": "NONE",
+        "effective_bindings": [
+          {
+            "platform_type": "discord",
+            "status": "ACTIVE"
+          }
+        ],
+        "revoked_bindings": [
+          {
+            "platform_type": "x",
+            "status": "REVOKED",
+            "re_addition_required": true
+          }
+        ]
+      }
+    }
+  ]
+}

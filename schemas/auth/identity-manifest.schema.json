@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/auth/identity-manifest.schema.json",
+  "title": "Identity Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "manifest_version": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "controller_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "agent_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "persona_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "persona_profile_hash": {
+      "$ref": "../core/common.schema.json#/$defs/hashString"
+    },
+    "identity_version": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "updated_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "ledger_ref": {
+      "$ref": "../core/common.schema.json#/$defs/uriString"
+    },
+    "revocation_ref": {
+      "$ref": "../core/common.schema.json#/$defs/uriString"
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/keyRef"
+      },
+      "minItems": 1
+    },
+    "platform_bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/platformBinding"
+      },
+      "minItems": 1
+    },
+    "service_endpoints": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/serviceEndpoint"
+      },
+      "minItems": 1
+    },
+    "capability_summary": {
+      "$ref": "../core/common.schema.json#/$defs/capabilitySummary"
+    },
+    "policy_ref": {
+      "$ref": "../core/common.schema.json#/$defs/uriString"
+    },
+    "signatures": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/signature"
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "spec_version",
+    "manifest_version",
+    "controller_id",
+    "agent_id",
+    "identity_version",
+    "updated_at",
+    "ledger_ref",
+    "revocation_ref",
+    "keys",
+    "platform_bindings",
+    "service_endpoints",
+    "capability_summary",
+    "policy_ref",
+    "signatures"
+  ],
+  "anyOf": [
+    {
+      "required": ["persona_id"]
+    },
+    {
+      "required": ["persona_profile_hash"]
+    }
+  ]
+}

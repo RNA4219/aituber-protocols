@@ -1,0 +1,83 @@
+{
+  "$comment": "Key Revocation Flow Example - operation key compromised scenario",
+  "flow_description": "Operation key漏洩時の鍵失効フロー例",
+  "events": [
+    {
+      "event_id": "evt-key-revoked-001",
+      "event_type": "key.revoked",
+      "spec_version": "0.2-draft",
+      "schema_version": "1.0.0",
+      "agent_id": "agent-aituber-hanako-001",
+      "controller_id": "controller-studio-alpha-001",
+      "event_time": "2026-03-24T10:30:00Z",
+      "recorded_at": "2026-03-24T10:30:05Z",
+      "producer_key_id": "key-operation-001",
+      "sequence": 42,
+      "prev_event_hash": "sha256:a1b2c3d4e5f6...previous_event_hash",
+      "payload_hash": "sha256:revoked_payload_hash_001",
+      "ledger_checkpoint": "ckpt-20260324-001",
+      "payload": {
+        "key_id": "key-operation-001",
+        "key_scope": "operation",
+        "revocation_reason": "compromised",
+        "effective_at": "2026-03-24T10:30:00Z",
+        "revocation_epoch": 15,
+        "replacement_key_id": "key-operation-002"
+      },
+      "signatures": [
+        {
+          "key_id": "key-recovery-001",
+          "algorithm": "EdDSA",
+          "canonicalization": "JCS",
+          "value": "signature_base64_encoded_value_here"
+        }
+      ]
+    }
+  ],
+  "affected_sessions": [
+    {
+      "session_id": "session-abc123-001",
+      "agent_id": "agent-aituber-hanako-001",
+      "instance_id": "instance-prod-server-001",
+      "issued_at": "2026-03-24T09:00:00Z",
+      "expires_at": "2026-03-24T15:00:00Z",
+      "session_epoch": 8,
+      "revocation_epoch": 14,
+      "policy_epoch": 5,
+      "termination_reason": "KEY_REVOKED",
+      "terminated_at": "2026-03-24T10:30:05Z",
+      "state_before": "ACTIVE",
+      "state_after": "TERMINATED"
+    },
+    {
+      "session_id": "session-xyz789-002",
+      "agent_id": "agent-aituber-hanako-001",
+      "instance_id": "instance-prod-server-002",
+      "issued_at": "2026-03-24T08:30:00Z",
+      "expires_at": "2026-03-24T14:30:00Z",
+      "session_epoch": 8,
+      "revocation_epoch": 14,
+      "policy_epoch": 5,
+      "termination_reason": "KEY_REVOKED",
+      "terminated_at": "2026-03-24T10:30:05Z",
+      "state_before": "ACTIVE",
+      "state_after": "TERMINATED"
+    }
+  ],
+  "epoch_changes": {
+    "previous_revocation_epoch": 14,
+    "new_revocation_epoch": 15,
+    "previous_identity_version": 7,
+    "new_identity_version": 7
+  },
+  "agent_state_transition": {
+    "from": "ACTIVE",
+    "to": "QUARANTINED_HARD",
+    "reason": "Critical key compromise detected"
+  },
+  "metadata": {
+    "incident_id": "INC-20260324-001",
+    "reported_by": "watcher-security-monitor-001",
+    "detection_method": "anomaly_detection"
+  }
+}

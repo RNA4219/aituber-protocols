@@ -740,16 +740,33 @@ async function runIntegrationTests(): Promise<IntegrationTestReport> {
 // Entry Point
 // ============================================================================
 
+/**
+ * Gracefully exit the process, allowing pending async operations to complete.
+ * This prevents libuv handle closing errors on Windows.
+ */
+function gracefulExit(code: number): never {
+  // Give libuv a chance to close all handles before exiting
+  // This is especially important on Windows where async handle cleanup
+  // can trigger "UV_HANDLE_CLOSING" assertion errors if interrupted
+  setTimeout(() => {
+    process.exit(code);
+  }, 100);
+  // Prevent the event loop from exiting prematurely
+  process.stdin.resume();
+  // Never returns, but TypeScript needs a return type
+  return undefined as never;
+}
+
 async function main() {
   try {
     const report = await runIntegrationTests();
 
     // Exit with appropriate code
-    process.exit(report.success ? 0 : 1);
+    gracefulExit(report.success ? 0 : 1);
   } catch (error) {
     log('Fatal error during integration tests:', 'error');
     console.error(error);
-    process.exit(1);
+    gracefulExit(1);
   }
 }
 

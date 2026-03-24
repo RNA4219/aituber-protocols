@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/challenge-request.schema.json",
+  "title": "Challenge Issuance Request",
+  "description": "Request to issue an authentication challenge to an agent",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "requesting_verifier_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the verifier agent requesting the challenge"
+    },
+    "target_agent_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the target agent to be challenged"
+    },
+    "target_instance_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the target instance to be challenged"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "The intent/purpose of this authentication"
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Capabilities required for this authentication"
+    },
+    "required_risk_level": {
+      "type": "string",
+      "enum": ["low", "high"],
+      "description": "Required risk level for this authentication"
+    },
+    "session_pubkey": {
+      "type": "string",
+      "minLength": 16,
+      "description": "Ephemeral session public key for this authentication"
+    },
+    "nonce_ttl_seconds": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 300,
+      "default": 120,
+      "description": "Time-to-live for the nonce in seconds"
+    }
+  },
+  "required": [
+    "requesting_verifier_id",
+    "target_agent_id",
+    "target_instance_id",
+    "intent",
+    "required_risk_level",
+    "session_pubkey"
+  ]
+}

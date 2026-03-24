@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/ledger/events/key-revoked.schema.json",
+  "title": "Ledger Event Payload - key.revoked",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "key_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "key_scope": {
+      "$ref": "../core/common.schema.json#/$defs/keyScope"
+    },
+    "revocation_reason": {
+      "type": "string",
+      "enum": [
+        "compromised",
+        "rotated",
+        "expired",
+        "superseded",
+        "policy_change",
+        "operator_request",
+        "unknown"
+      ]
+    },
+    "effective_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "revocation_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "replacement_key_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "linked_event_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    }
+  },
+  "required": [
+    "key_id",
+    "key_scope",
+    "revocation_reason",
+    "effective_at",
+    "revocation_epoch"
+  ]
+}

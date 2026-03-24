@@ -1,0 +1,119 @@
+{
+  "$comment": "Low-Risk Authentication Flow Example - AITuber Protocol v0.2-draft",
+  "description": "Challenge-Response handshake for low-risk operations (chat, profile read, status share)",
+  "flow": {
+    "scenario": "AITuber Alice discovers AITuber Bob on X and wants to establish a low-risk session for basic interaction",
+    "risk_level": "low",
+    "characteristics": [
+      "Stale revocation cache is acceptable",
+      "Fail-soft on identity host unreachability",
+      "Capability downgrade is allowed",
+      "Shorter verification time target (< 5 seconds)"
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "challenge_issuance",
+      "description": "Verifier (Bob) issues a challenge to the requesting agent (Alice)",
+      "message": {
+        "spec_version": "0.2-draft",
+        "challenge_id": "ch-20240315-a1b2c3d4e5f6",
+        "verifier_id": "agent-bob-main",
+        "target_agent_id": "agent-alice-main",
+        "target_instance_id": "inst-alice-001",
+        "nonce": "n0nc3_l0wr1sk_4l1c3_20240315t101500z",
+        "issued_at": "2024-03-15T10:15:00Z",
+        "expires_at": "2024-03-15T10:20:00Z",
+        "intent": "basic_interaction",
+        "risk_level": "low",
+        "requested_capabilities": ["chat.basic", "profile.read", "status.share"],
+        "epochs": {
+          "identity_version": 5,
+          "revocation_epoch": 12,
+          "policy_epoch": 3,
+          "session_epoch": 1,
+          "ledger_checkpoint": "cp-20240315-001-a1b2c3"
+        },
+        "signature": {
+          "key_id": "key-bob-operation-002",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "sig_bob_challenge_low_risk_abc123def456..."
+        }
+      }
+    },
+    {
+      "step": 2,
+      "name": "proof_response",
+      "description": "Agent (Alice) responds with a signed proof demonstrating possession of the operation key",
+      "message": {
+        "spec_version": "0.2-draft",
+        "proof_id": "prf-20240315-g7h8i9j0k1l2",
+        "challenge_id": "ch-20240315-a1b2c3d4e5f6",
+        "agent_id": "agent-alice-main",
+        "instance_id": "inst-alice-001",
+        "nonce": "n0nc3_l0wr1sk_4l1c3_20240315t101500z",
+        "timestamp": "2024-03-15T10:15:30Z",
+        "expires_at": "2024-03-15T10:25:30Z",
+        "intent": "basic_interaction",
+        "capability_digest": "sha256:chat.basic:profile.read:status.share",
+        "identity_version": 5,
+        "revocation_epoch": 12,
+        "policy_epoch": 3,
+        "session_epoch": 1,
+        "session_pubkey": {
+          "key_id": "key-alice-session-20240315",
+          "algorithm": "Ed25519",
+          "public_key": "pk_alice_session_xyz789abc...",
+          "valid_until": "2024-03-15T14:15:30Z"
+        },
+        "signature": {
+          "key_id": "key-alice-operation-003",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "sig_alice_proof_low_risk_789def012..."
+        }
+      }
+    },
+    {
+      "step": 3,
+      "name": "session_establishment",
+      "description": "Verifier (Bob) validates the proof and issues a session token",
+      "message": {
+        "spec_version": "0.2-draft",
+        "session_id": "sess-20240315-m3n4o5p6q7r8",
+        "agent_id": "agent-alice-main",
+        "instance_id": "inst-alice-001",
+        "issued_at": "2024-03-15T10:15:45Z",
+        "expires_at": "2024-03-15T14:15:45Z",
+        "session_epoch": 1,
+        "revocation_epoch": 12,
+        "policy_epoch": 3,
+        "identity_version": 5,
+        "sequence": 1,
+        "capabilities": ["chat.basic", "profile.read", "status.share"],
+        "risk_level": "low",
+        "status": "active",
+        "ledger_checkpoint": "cp-20240315-001-a1b2c3",
+        "signature": {
+          "key_id": "key-bob-session-issuer-001",
+          "algorithm": "Ed25519",
+          "canonicalization": "JCS",
+          "value": "sig_bob_session_low_risk_345fgh678..."
+        }
+      }
+    }
+  ],
+  "validation_notes": {
+    "freshness_requirements": {
+      "revocation_cache": "May be stale up to TTL (e.g., 5 minutes)",
+      "identity_host": "Fail-soft if unreachable - continue with degraded capability"
+    },
+    "epoch_validation": {
+      "identity_version": "Must not be lower than previously seen",
+      "revocation_epoch": "Must not be lower than previously seen"
+    },
+    "quarantine_check": "Agent must not be in QUARANTINED_HARD state"
+  }
+}

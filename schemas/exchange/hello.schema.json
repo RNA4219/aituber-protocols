@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/exchange/hello.schema.json",
+  "title": "Exchange Hello Message",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "protocol_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_type": {
+      "type": "string",
+      "const": "hello"
+    },
+    "timestamp": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "agent_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "instance_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "session_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "sequence": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "signature_or_mac": {
+      "type": "string",
+      "minLength": 16
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "capabilities": {
+              "$ref": "../core/common.schema.json#/$defs/capabilitySummary"
+            },
+            "capability_digest": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "identity_version": {
+          "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+        },
+        "revocation_epoch": {
+          "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+        }
+      }
+    }
+  },
+  "required": [
+    "protocol_version",
+    "message_id",
+    "message_type",
+    "timestamp",
+    "agent_id",
+    "instance_id",
+    "session_id",
+    "sequence",
+    "signature_or_mac",
+    "body"
+  ]
+}

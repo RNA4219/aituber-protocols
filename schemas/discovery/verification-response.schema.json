@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/verification-response.schema.json",
+  "title": "Proof Verification Response",
+  "description": "Response from proof verification",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "verification_status": {
+      "type": "string",
+      "enum": ["VERIFIED", "REJECTED", "EXPIRED", "INVALID_SIGNATURE", "REVOKED", "QUARANTINED"]
+    },
+    "verified_agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verified_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "high"]
+    },
+    "freshness_status": {
+      "type": "string",
+      "enum": ["FRESH", "STALE", "UNKNOWN"]
+    },
+    "capability_status": {
+      "type": "string",
+      "enum": ["MATCHED", "INSUFFICIENT", "UNKNOWN"]
+    },
+    "version_check": {
+      "type": "object",
+      "properties": {
+        "rollback_detected": { "type": "boolean" },
+        "epoch_mismatch": { "type": "boolean" },
+        "session_epoch_old": { "type": "boolean" },
+        "policy_mismatch": { "type": "boolean" }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["verification_status"]
+}

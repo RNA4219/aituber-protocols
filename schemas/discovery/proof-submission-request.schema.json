@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/proof-submission-request.schema.json",
+  "title": "Proof Submission Request",
+  "description": "Request to submit an authentication proof",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the challenge being responded to"
+    },
+    "proof": {
+      "type": "object",
+      "description": "The authentication proof object",
+      "properties": {
+        "spec_version": { "type": "string" },
+        "proof_id": { "type": "string" },
+        "challenge_id": { "type": "string" },
+        "agent_id": { "type": "string" },
+        "instance_id": { "type": "string" },
+        "nonce": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "intent": { "type": "string" },
+        "capability_digest": { "type": "string" },
+        "identity_version": { "type": "integer" },
+        "revocation_epoch": { "type": "integer" },
+        "policy_epoch": { "type": "integer" },
+        "session_epoch": { "type": "integer" },
+        "session_pubkey": { "type": "object" },
+        "signature": { "type": "object" }
+      },
+      "required": ["proof_id", "challenge_id", "agent_id", "nonce", "timestamp"]
+    }
+  },
+  "required": ["challenge_id", "proof"]
+}

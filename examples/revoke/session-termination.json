@@ -1,0 +1,111 @@
+{
+  "$comment": "Session Termination Example - Force termination due to revocation_epoch increase",
+  "flow_description": "revocation_epoch増加によるセッション強制停止の例",
+  "termination_trigger": {
+    "trigger_type": "REVOCATION_EPOCH_INCREASE",
+    "previous_epoch": 14,
+    "new_epoch": 15,
+    "triggered_at": "2026-03-24T10:30:05Z",
+    "related_event_id": "evt-key-revoked-001"
+  },
+  "terminated_sessions": [
+    {
+      "session_id": "session-collab-p2p-001",
+      "agent_id": "agent-aituber-hanako-001",
+      "instance_id": "instance-prod-server-001",
+      "peer_agent_id": "agent-aituber-taro-001",
+      "peer_instance_id": "instance-prod-server-peer-001",
+      "session_type": "collab",
+      "risk_level": "high",
+      "capability_granted": [
+        "chat.basic",
+        "profile.read",
+        "memory.exchange.summary_only"
+      ],
+      "issued_at": "2026-03-24T09:15:00Z",
+      "expires_at": "2026-03-24T12:15:00Z",
+      "session_epoch": 8,
+      "revocation_epoch_at_issue": 14,
+      "policy_epoch_at_issue": 5,
+      "sequence": 127,
+      "termination_details": {
+        "termination_reason": "REVOCATION_EPOCH_INCREASED",
+        "terminated_at": "2026-03-24T10:30:05Z",
+        "state_before": "ACTIVE",
+        "state_after": "TERMINATED",
+        "cleanup_actions": [
+          "session_key_invalidated",
+          "pending_exchanges_cancelled",
+          "peer_notification_sent"
+        ]
+      }
+    },
+    {
+      "session_id": "session-discord-bot-002",
+      "agent_id": "agent-aituber-hanako-001",
+      "instance_id": "instance-prod-server-002",
+      "peer_agent_id": "discord-server-community-001",
+      "session_type": "platform_binding",
+      "risk_level": "low",
+      "capability_granted": [
+        "chat.basic",
+        "status.share"
+      ],
+      "issued_at": "2026-03-24T08:00:00Z",
+      "expires_at": "2026-03-24T20:00:00Z",
+      "session_epoch": 8,
+      "revocation_epoch_at_issue": 14,
+      "policy_epoch_at_issue": 5,
+      "sequence": 89,
+      "termination_details": {
+        "termination_reason": "REVOCATION_EPOCH_INCREASED",
+        "terminated_at": "2026-03-24T10:30:05Z",
+        "state_before": "ACTIVE",
+        "state_after": "TERMINATED",
+        "cleanup_actions": [
+          "session_key_invalidated",
+          "discord_presence_cleared"
+        ]
+      }
+    }
+  ],
+  "peer_notifications": [
+    {
+      "peer_agent_id": "agent-aituber-taro-001",
+      "notification_type": "session.terminated",
+      "reason": "COUNTERPART_KEY_REVOKED",
+      "sent_at": "2026-03-24T10:30:06Z",
+      "acknowledged": true
+    }
+  ],
+  "state_machine_transitions": [
+    {
+      "entity_type": "agent",
+      "entity_id": "agent-aituber-hanako-001",
+      "from_state": "ACTIVE",
+      "to_state": "QUARANTINED_HARD",
+      "transition_event": "key.revoked"
+    },
+    {
+      "entity_type": "session",
+      "entity_id": "session-collab-p2p-001",
+      "from_state": "ACTIVE",
+      "to_state": "TERMINATING",
+      "transition_event": "revocation_epoch_increase"
+    },
+    {
+      "entity_type": "session",
+      "entity_id": "session-collab-p2p-001",
+      "from_state": "TERMINATING",
+      "to_state": "TERMINATED",
+      "transition_event": "cleanup_completed"
+    }
+  ],
+  "cleanup_summary": {
+    "sessions_terminated": 2,
+    "session_keys_invalidated": 2,
+    "pending_exchanges_cancelled": 3,
+    "peer_notifications_sent": 1,
+    "cleanup_completed_at": "2026-03-24T10:30:10Z"
+  }
+}

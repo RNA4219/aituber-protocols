@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/ledger/events/compromise-reported.schema.json",
+  "title": "Ledger Event Payload - compromise.reported",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "compromise_scope": {
+      "type": "string",
+      "enum": [
+        "platform_binding",
+        "operation_key",
+        "session_key",
+        "bot_host",
+        "build_pipeline",
+        "identity_host",
+        "root_suspected",
+        "unknown"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "suspected_since": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "detected_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "effective_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "reported_reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "revocation_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "recommended_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "default": []
+    },
+    "quarantine_recommended": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "compromise_scope",
+    "severity",
+    "detected_at",
+    "effective_at",
+    "reported_reason",
+    "revocation_epoch",
+    "quarantine_recommended"
+  ]
+}

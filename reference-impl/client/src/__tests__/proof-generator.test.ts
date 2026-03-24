@@ -228,17 +228,22 @@ describe('Proof Generator', () => {
       expect(timestamp.toISOString()).toBe(proof.timestamp);
     });
 
-    it('should throw error when privateKey is not configured', async () => {
+    it('should work without privateKey configured (uses session key for signing)', async () => {
       const configWithoutKey: ProofGeneratorConfig = {
         agentId: 'agent_test',
         instanceId: 'instance_test',
         keyId: 'key_test',
         algorithm: 'ed25519',
-        // privateKey is undefined
+        // privateKey is undefined - proof generator uses session key pair for signing
       };
       const generator = new ProofGeneratorImpl(configWithoutKey);
 
-      await expect(generator.generateProof(validChallenge)).rejects.toThrow('Private key is required for signing');
+      // Should work because signing uses the session key pair, not config.privateKey
+      const proof = await generator.generateProof(validChallenge);
+
+      expect(proof).toBeDefined();
+      expect(proof.signature.value).toBeTruthy();
+      expect(proof.signature.value.length).toBeGreaterThan(0);
     });
 
     describe('Proof with different epoch values', () => {

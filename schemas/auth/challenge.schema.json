@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/auth/challenge.schema.json",
+  "title": "Authentication Challenge",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "challenge_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "verifier_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "target_agent_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "target_instance_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512
+    },
+    "issued_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "risk_level": {
+      "$ref": "../core/common.schema.json#/$defs/riskLevel"
+    },
+    "requested_capabilities": {
+      "$ref": "../core/common.schema.json#/$defs/capabilitySummary"
+    },
+    "epochs": {
+      "$ref": "../core/common.schema.json#/$defs/highRiskEpochBundle"
+    },
+    "signature": {
+      "$ref": "../core/common.schema.json#/$defs/signature"
+    }
+  },
+  "required": [
+    "spec_version",
+    "challenge_id",
+    "verifier_id",
+    "target_agent_id",
+    "target_instance_id",
+    "nonce",
+    "issued_at",
+    "expires_at",
+    "intent",
+    "risk_level",
+    "epochs",
+    "signature"
+  ]
+}

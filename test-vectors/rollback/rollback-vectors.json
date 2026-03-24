@@ -1,0 +1,397 @@
+{
+  "$schema": "https://example.com/schemas/test-vectors/rollback-vectors.schema.json",
+  "schema_version": "0.2",
+  "description": "Rollback detection test vectors for AITuber authentication protocol",
+  "vectors": [
+    {
+      "id": "ROLLBACK-001",
+      "name": "identity_version_rollback",
+      "description": "Detection of identity version rollback",
+      "scenario": "Received identity version is lower than previously observed version",
+      "input": {
+        "verifier_state": {
+          "agent_id": "agt_B001",
+          "last_identity_version": 15,
+          "last_observed_at": "2026-03-24T11:00:00Z"
+        },
+        "received_identity": {
+          "agent_id": "agt_B001",
+          "identity_version": 10,
+          "manifest_signature": "valid_signature"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "IDENTITY_ROLLBACK_DETECTED",
+          "message": "Identity version regression detected - possible rollback attack",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "last_observed_version": 15,
+            "received_version": 10,
+            "version_delta": -5
+          }
+        },
+        "watcher_notification": {
+          "alert_type": "ROLLBACK_SUSPECTED",
+          "agent_id": "agt_B001",
+          "severity": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-002",
+      "name": "revocation_epoch_regression",
+      "description": "Detection of revocation epoch regression",
+      "scenario": "Received revocation epoch is lower than previously observed",
+      "input": {
+        "verifier_state": {
+          "agent_id": "agt_B001",
+          "last_revocation_epoch": 12,
+          "last_observed_at": "2026-03-24T11:00:00Z"
+        },
+        "received_status": {
+          "agent_id": "agt_B001",
+          "revocation_epoch": 8
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "REVOCATION_EPOCH_REGRESSION",
+          "message": "Revocation epoch regression detected - possible rollback or replay attack",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "last_observed_epoch": 12,
+            "received_epoch": 8
+          }
+        },
+        "recommended_action": "FORCE_SESSION_REEVALUATION"
+      }
+    },
+    {
+      "id": "ROLLBACK-003",
+      "name": "policy_epoch_regression",
+      "description": "Detection of policy epoch regression",
+      "scenario": "Received policy epoch is lower than known policy epoch",
+      "input": {
+        "verifier_state": {
+          "last_policy_epoch": 7
+        },
+        "received_manifest": {
+          "policy_epoch": 4
+        }
+      },
+      "expected_output": {
+        "high_risk_allowed": false,
+        "error": {
+          "code": "POLICY_EPOCH_REGRESSION",
+          "message": "Policy epoch regression detected - possible policy rollback",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "known_policy_epoch": 7,
+            "received_policy_epoch": 4
+          }
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-004",
+      "name": "ledger_checkpoint_regression",
+      "description": "Detection of ledger checkpoint regression",
+      "scenario": "Received ledger checkpoint is older than known checkpoint",
+      "input": {
+        "known_checkpoint": {
+          "checkpoint": "chk_1050",
+          "observed_at": "2026-03-24T11:00:00Z"
+        },
+        "received_checkpoint": {
+          "checkpoint": "chk_1000"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "LEDGER_CHECKPOINT_OLD",
+          "message": "Ledger checkpoint regression detected - possible split-view, freeze, or rollback",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "known_checkpoint": "chk_1050",
+            "received_checkpoint": "chk_1000"
+          }
+        },
+        "watcher_notification": {
+          "alert_type": "CHECKPOINT_CONFLICT",
+          "severity": "HIGH",
+          "recommended_action": "HOLD_HIGH_RISK_OPERATIONS"
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-005",
+      "name": "multi_field_rollback",
+      "description": "Detection of multiple field rollback simultaneously",
+      "scenario": "Multiple monotonic fields show regression at the same time",
+      "input": {
+        "verifier_state": {
+          "last_identity_version": 20,
+          "last_revocation_epoch": 15,
+          "last_policy_epoch": 8,
+          "last_ledger_checkpoint": "chk_1100"
+        },
+        "received_data": {
+          "identity_version": 15,
+          "revocation_epoch": 10,
+          "policy_epoch": 5,
+          "ledger_checkpoint": "chk_1000"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "MULTIPLE_ROLLBACK_DETECTED",
+          "message": "Multiple field regressions detected - severe rollback or split-view attack",
+          "retryable": false,
+          "risk_level": "CRITICAL",
+          "details": {
+            "regressions": [
+              {
+                "field": "identity_version",
+                "from": 20,
+                "to": 15
+              },
+              {
+                "field": "revocation_epoch",
+                "from": 15,
+                "to": 10
+              },
+              {
+                "field": "policy_epoch",
+                "from": 8,
+                "to": 5
+              },
+              {
+                "field": "ledger_checkpoint",
+                "from": "chk_1100",
+                "to": "chk_1000"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-006",
+      "name": "binding_version_rollback",
+      "description": "Detection of platform binding version rollback",
+      "scenario": "Platform binding version is lower than previously observed",
+      "input": {
+        "known_binding": {
+          "platform_type": "discord",
+          "platform_account_id": "1234567890",
+          "binding_version": 5
+        },
+        "received_binding": {
+          "platform_type": "discord",
+          "platform_account_id": "1234567890",
+          "binding_version": 2
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "BINDING_VERSION_ROLLBACK",
+          "message": "Platform binding version regression detected",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "platform_type": "discord",
+            "known_version": 5,
+            "received_version": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-007",
+      "name": "session_epoch_rollback",
+      "description": "Detection of session epoch rollback",
+      "scenario": "Received session epoch is lower than current session epoch",
+      "input": {
+        "current_session": {
+          "session_id": "ses_001",
+          "agent_id": "agt_B001",
+          "session_epoch": 50
+        },
+        "received_message": {
+          "session_id": "ses_001",
+          "session_epoch": 45
+        }
+      },
+      "expected_output": {
+        "message_valid": false,
+        "error": {
+          "code": "SESSION_EPOCH_OLD",
+          "message": "Session epoch is older than current - possible replay or rollback",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-008",
+      "name": "key_rotation_rollback",
+      "description": "Detection of key rotation rollback attempt",
+      "scenario": "Attacker attempts to use old key after rotation",
+      "input": {
+        "key_history": [
+          {
+            "key_id": "opk_001",
+            "status": "REVOKED",
+            "revoked_at": "2026-03-24T10:00:00Z",
+            "revocation_epoch": 10
+          },
+          {
+            "key_id": "opk_002",
+            "status": "ACTIVE",
+            "activated_at": "2026-03-24T10:05:00Z",
+            "activation_epoch": 11
+          }
+        ],
+        "proof_attempt": {
+          "key_id": "opk_001",
+          "signature": "valid_signature_from_old_key"
+        },
+        "current_revocation_epoch": 11
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "KEY_REVOKED",
+          "message": "Operation key has been revoked - rollback attempt detected",
+          "retryable": false,
+          "risk_level": "HIGH",
+          "details": {
+            "key_id": "opk_001",
+            "revoked_at": "2026-03-24T10:00:00Z",
+            "current_active_key": "opk_002"
+          }
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-009",
+      "name": "split_view_detection",
+      "description": "Detection of split-view attack through checkpoint inconsistency",
+      "scenario": "Different verifiers observe different ledger checkpoints",
+      "input": {
+        "verifier_a_checkpoint": {
+          "checkpoint": "chk_1050",
+          "source": "ledger_endpoint_primary"
+        },
+        "verifier_b_checkpoint": {
+          "checkpoint": "chk_1045",
+          "source": "ledger_endpoint_secondary"
+        },
+        "watcher_consensus": {
+          "expected_checkpoint": "chk_1050",
+          "verifier_quorum": 3,
+          "verifiers_agreeing": 2
+        }
+      },
+      "expected_output": {
+        "watcher_alert": {
+          "alert_type": "SPLIT_VIEW_SUSPECTED",
+          "severity": "CRITICAL",
+          "recommended_action": "HOLD_HIGH_RISK_OPERATIONS",
+          "evidence": {
+            "observed_checkpoints": ["chk_1050", "chk_1045"],
+            "quorum_agreement": false
+          }
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-010",
+      "name": "freeze_attack_detection",
+      "description": "Detection of freeze attack through stale checkpoint",
+      "scenario": "Ledger checkpoint has not advanced within expected time window",
+      "input": {
+        "last_checkpoint": {
+          "checkpoint": "chk_1050",
+          "observed_at": "2026-03-24T10:00:00Z"
+        },
+        "current_time": "2026-03-24T14:00:00Z",
+        "expected_checkpoint_interval_seconds": 300,
+        "max_stale_duration_seconds": 1800
+      },
+      "expected_output": {
+        "watcher_alert": {
+          "alert_type": "STALE_CHECKPOINT",
+          "severity": "HIGH",
+          "message": "Ledger checkpoint has not advanced - possible freeze attack",
+          "details": {
+            "last_checkpoint": "chk_1050",
+            "stale_duration_seconds": 14400
+          }
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-011",
+      "name": "recovery_state_rollback",
+      "description": "Detection of recovery state rollback",
+      "scenario": "Recovery completed state is reverted to earlier state",
+      "input": {
+        "recovery_history": {
+          "recovery_id": "rcv_001",
+          "completed_at": "2026-03-24T11:00:00Z",
+          "final_status": "COMPLETED",
+          "new_revocation_epoch": 15
+        },
+        "received_state": {
+          "recovery_id": "rcv_001",
+          "status": "INITIATED",
+          "revocation_epoch": 12
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "RECOVERY_STATE_ROLLBACK",
+          "message": "Recovery state regression detected - possible rollback of recovery process",
+          "retryable": false,
+          "risk_level": "CRITICAL"
+        }
+      }
+    },
+    {
+      "id": "ROLLBACK-012",
+      "name": "first_seen_bootstrap_no_rollback",
+      "description": "First-seen peer without rollback detection capability",
+      "scenario": "First contact with agent has no prior state to compare against",
+      "input": {
+        "verifier_state": {
+          "known_agents": [],
+          "monotonic_records": {}
+        },
+        "received_identity": {
+          "agent_id": "agt_NEW001",
+          "identity_version": 1,
+          "revocation_epoch": 1
+        }
+      },
+      "expected_output": {
+        "bootstrap_status": "FIRST_SEEN_LOW_RISK_ONLY",
+        "rollback_detection": false,
+        "trust_level": "FIRST_SEEN",
+        "high_risk_allowed": false,
+        "warnings": ["no prior monotonic state for rollback detection"]
+      }
+    }
+  ]
+}

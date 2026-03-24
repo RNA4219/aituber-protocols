@@ -104,7 +104,6 @@ export class ProofGeneratorImpl implements ProofGenerator {
    *
    * @param challenge - チャレンジ情報
    * @returns 生成されたProof
-   * @throws 秘密鍵が設定されていない場合エラー
    */
   async generateProof(challenge: ChallengeInfo): Promise<Proof> {
     // Session鍵ペア確保（遅延初期化）

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/ledger/events/recovery-completed.schema.json",
+  "title": "Ledger Event Payload - recovery.completed",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "recovery_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "completed_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "new_operation_key_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "../core/common.schema.json#/$defs/idString"
+      },
+      "minItems": 1
+    },
+    "binding_reverified": {
+      "type": "boolean"
+    },
+    "revocation_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "identity_version": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "policy_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "quarantine_cleared": {
+      "type": "boolean"
+    },
+    "recovery_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    }
+  },
+  "required": [
+    "recovery_id",
+    "completed_at",
+    "new_operation_key_ids",
+    "binding_reverified",
+    "revocation_epoch",
+    "identity_version",
+    "policy_epoch",
+    "quarantine_cleared"
+    ,"recovery_summary"
+  ]
+}

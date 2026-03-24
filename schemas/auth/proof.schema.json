@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/auth/proof.schema.json",
+  "title": "Authentication Proof",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "proof_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "challenge_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "agent_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "instance_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512
+    },
+    "timestamp": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "capability_digest": {
+      "$ref": "../core/common.schema.json#/$defs/hashString"
+    },
+    "identity_version": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "revocation_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "policy_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "session_epoch": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "session_pubkey": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {
+          "$ref": "../core/common.schema.json#/$defs/idString"
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "public_key": {
+          "type": "string",
+          "minLength": 16
+        },
+        "valid_until": {
+          "$ref": "../core/common.schema.json#/$defs/timestamp"
+        }
+      },
+      "required": ["key_id", "algorithm", "public_key"]
+    },
+    "signature": {
+      "$ref": "../core/common.schema.json#/$defs/signature"
+    }
+  },
+  "required": [
+    "spec_version",
+    "proof_id",
+    "challenge_id",
+    "agent_id",
+    "instance_id",
+    "nonce",
+    "timestamp",
+    "expires_at",
+    "intent",
+    "capability_digest",
+    "identity_version",
+    "revocation_epoch",
+    "policy_epoch",
+    "session_pubkey",
+    "signature"
+  ]
+}

@@ -176,6 +176,19 @@ function loadAllSchemas(ajv: Ajv): void {
       console.log(`${colors.cyan}Loaded:${colors.reset} ledger/${file}`);
     }
   }
+
+  // Discovery schemas
+  const discoveryDir = path.join(SCHEMAS_DIR, 'discovery');
+  if (fs.existsSync(discoveryDir)) {
+    const discoveryFiles = fs.readdirSync(discoveryDir).filter(f => f.endsWith('.schema.json'));
+    for (const file of discoveryFiles) {
+      const schemaPath = path.join(discoveryDir, file);
+      const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
+      const schemaId = schema.$id || `discovery/${file}`;
+      ajv.addSchema(schema, schemaId);
+      console.log(`${colors.cyan}Loaded:${colors.reset} discovery/${file}`);
+    }
+  }
 }
 
 /**

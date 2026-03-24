@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/ledger/events/binding-updated.schema.json",
+  "title": "Ledger Event Payload - binding.updated",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "platform_type": {
+      "$ref": "../core/common.schema.json#/$defs/platformType"
+    },
+    "platform_account_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "display_handle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "binding_status": {
+      "$ref": "../core/common.schema.json#/$defs/bindingStatus"
+    },
+    "bound_by_key_id": {
+      "$ref": "../core/common.schema.json#/$defs/idString"
+    },
+    "binding_version": {
+      "$ref": "../core/common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "effective_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    },
+    "verified_at": {
+      "$ref": "../core/common.schema.json#/$defs/timestamp"
+    }
+  },
+  "required": [
+    "platform_type",
+    "platform_account_id",
+    "display_handle",
+    "binding_status",
+    "bound_by_key_id",
+    "binding_version",
+    "effective_at"
+  ]
+}

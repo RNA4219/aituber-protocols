@@ -1,0 +1,392 @@
+{
+  "$schema": "https://example.com/schemas/test-vectors/replay-vectors.schema.json",
+  "schema_version": "0.2",
+  "description": "Replay attack detection test vectors for AITuber authentication protocol",
+  "vectors": [
+    {
+      "id": "REPLAY-001",
+      "name": "nonce_reuse_same_challenge",
+      "description": "Detection of nonce reuse within the same challenge",
+      "scenario": "Attacker attempts to reuse a nonce from a previously submitted proof",
+      "input": {
+        "original_proof": {
+          "challenge_id": "chl_20260324_001",
+          "nonce": "nonce_abc123xyz789",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "timestamp": "2026-03-24T12:30:15Z",
+          "signature": "valid_signature_001"
+        },
+        "replay_attempt": {
+          "challenge_id": "chl_20260324_001",
+          "nonce": "nonce_abc123xyz789",
+          "agent_id": "agt_B001",
+          "instance_id": "ins_B001_001",
+          "timestamp": "2026-03-24T12:30:15Z",
+          "signature": "valid_signature_001"
+        },
+        "session_cache": {
+          "nonces_seen": ["nonce_abc123xyz789"],
+          "challenge_id": "chl_20260324_001",
+          "first_seen_at": "2026-03-24T12:30:20Z"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "NONCE_REPLAY",
+          "message": "Nonce has already been used - possible replay attack",
+          "retryable": false,
+          "risk_level": "HIGH"
+        },
+        "audit_event": {
+          "event_type": "REPLAY_ATTACK_DETECTED",
+          "nonce": "nonce_abc123xyz789",
+          "first_use_time": "2026-03-24T12:30:20Z",
+          "replay_attempt_time": "2026-03-24T12:32:00Z"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-002",
+      "name": "nonce_reuse_different_challenge",
+      "description": "Detection of nonce reuse across different challenges",
+      "scenario": "Attacker attempts to reuse a nonce from a different challenge",
+      "input": {
+        "original_challenge": {
+          "challenge_id": "chl_20260324_001",
+          "nonce": "nonce_shared_value"
+        },
+        "replay_challenge": {
+          "challenge_id": "chl_20260324_002",
+          "nonce": "nonce_shared_value"
+        },
+        "session_cache": {
+          "nonces_seen": ["nonce_shared_value"]
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "NONCE_REPLAY",
+          "message": "Nonce has already been used in a different challenge",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-003",
+      "name": "sequence_replay_detection",
+      "description": "Detection of sequence number reuse in exchange messages",
+      "scenario": "Attacker attempts to replay an exchange message with same sequence number",
+      "input": {
+        "session": {
+          "session_id": "ses_20260324_B001_001",
+          "agent_id": "agt_B001",
+          "sequence_last_seen": 15
+        },
+        "replay_message": {
+          "message_type": "collab.invite",
+          "session_id": "ses_20260324_B001_001",
+          "sequence": 10,
+          "timestamp": "2026-03-24T12:30:00Z",
+          "signature_or_mac": "valid_mac"
+        },
+        "session_cache": {
+          "sequences_seen": [10, 11, 12, 13, 14, 15]
+        }
+      },
+      "expected_output": {
+        "message_valid": false,
+        "error": {
+          "code": "SEQUENCE_REPLAY",
+          "message": "Sequence number has already been processed - possible replay attack",
+          "retryable": false,
+          "risk_level": "HIGH"
+        },
+        "audit_event": {
+          "event_type": "SEQUENCE_REPLAY_DETECTED",
+          "session_id": "ses_20260324_B001_001",
+          "sequence_attempted": 10,
+          "current_sequence": 15
+        }
+      }
+    },
+    {
+      "id": "REPLAY-004",
+      "name": "old_timestamp_replay",
+      "description": "Detection of message with old timestamp",
+      "scenario": "Attacker replays a message with timestamp outside acceptable window",
+      "input": {
+        "message": {
+          "message_type": "collab.accept",
+          "timestamp": "2026-03-24T10:00:00Z",
+          "signature_or_mac": "valid_mac_old"
+        },
+        "current_time": "2026-03-24T12:35:00Z",
+        "max_message_age_seconds": 300
+      },
+      "expected_output": {
+        "message_valid": false,
+        "error": {
+          "code": "MESSAGE_TOO_OLD",
+          "message": "Message timestamp is outside acceptable window",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-005",
+      "name": "session_id_reuse_after_termination",
+      "description": "Detection of session ID reuse after session termination",
+      "scenario": "Attacker attempts to use a terminated session ID",
+      "input": {
+        "session": {
+          "session_id": "ses_20260324_B001_term",
+          "agent_id": "agt_B001",
+          "session_status": "TERMINATED",
+          "terminated_at": "2026-03-24T12:00:00Z",
+          "termination_reason": "REVOCATION_EPOCH_INCREASED"
+        },
+        "replay_attempt": {
+          "session_id": "ses_20260324_B001_term",
+          "sequence": 20,
+          "timestamp": "2026-03-24T12:30:00Z"
+        }
+      },
+      "expected_output": {
+        "operation_status": "REJECTED",
+        "error": {
+          "code": "SESSION_TERMINATED",
+          "message": "Cannot use terminated session - possible replay attack",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-006",
+      "name": "proof_replay_after_session_expiry",
+      "description": "Detection of proof replay after session has expired",
+      "scenario": "Attacker attempts to reuse a proof after the session has expired",
+      "input": {
+        "original_session": {
+          "session_id": "ses_20260324_B001_expired",
+          "expires_at": "2026-03-24T12:00:00Z",
+          "session_status": "EXPIRED"
+        },
+        "replay_proof": {
+          "session_id": "ses_20260324_B001_expired",
+          "timestamp": "2026-03-24T11:55:00Z",
+          "signature": "valid_signature_old"
+        },
+        "current_time": "2026-03-24T12:30:00Z"
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "SESSION_EXPIRED",
+          "message": "Session has expired - proof cannot be reused",
+          "retryable": true,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-007",
+      "name": "collab_invite_replay",
+      "description": "Detection of collaboration invite replay",
+      "scenario": "Attacker replays a previously sent collaboration invite",
+      "input": {
+        "original_invite": {
+          "invite_id": "inv_20260324_001",
+          "from_agent": "agt_A001",
+          "to_agent": "agt_B001",
+          "timestamp": "2026-03-24T12:00:00Z"
+        },
+        "processed_invites": ["inv_20260324_001"],
+        "replay_invite": {
+          "invite_id": "inv_20260324_001",
+          "from_agent": "agt_A001",
+          "to_agent": "agt_B001",
+          "timestamp": "2026-03-24T12:00:00Z"
+        }
+      },
+      "expected_output": {
+        "invite_status": "REJECTED",
+        "error": {
+          "code": "INVITE_ALREADY_PROCESSED",
+          "message": "Collaboration invite has already been processed",
+          "retryable": false,
+          "risk_level": "MEDIUM"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-008",
+      "name": "mac_replay_detection",
+      "description": "Detection of MAC reuse for message authentication",
+      "scenario": "Attacker replays a message with same MAC to a different endpoint",
+      "input": {
+        "original_message": {
+          "message_id": "msg_001",
+          "session_id": "ses_001",
+          "sequence": 5,
+          "signature_or_mac": "mac_value_abc123"
+        },
+        "mac_cache": {
+          "macs_seen": ["mac_value_abc123"]
+        },
+        "replay_message": {
+          "message_id": "msg_002",
+          "session_id": "ses_001",
+          "sequence": 6,
+          "signature_or_mac": "mac_value_abc123"
+        }
+      },
+      "expected_output": {
+        "message_valid": false,
+        "error": {
+          "code": "MAC_REPLAY_DETECTED",
+          "message": "Message MAC has been seen before - possible replay or MAC collision",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-009",
+      "name": "challenge_replay_different_agent",
+      "description": "Detection of challenge response intended for different agent",
+      "scenario": "Attacker intercepts and replays proof intended for different agent",
+      "input": {
+        "challenge": {
+          "challenge_id": "chl_001",
+          "target_agent_id": "agt_B001",
+          "nonce": "nonce_replay009",
+          "issued_at": "2026-03-24T12:00:00Z",
+          "verifier_id": "agt_A001"
+        },
+        "replay_proof": {
+          "challenge_id": "chl_001",
+          "agent_id": "agt_C001",
+          "signature": "signature_for_agt_B001"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "PROOF_AGENT_MISMATCH",
+          "message": "Proof agent_id does not match challenge target_agent_id",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-010",
+      "name": "cross_session_nonce_replay",
+      "description": "Detection of nonce replay across different sessions",
+      "scenario": "Attacker attempts to use nonce from one session in another session",
+      "input": {
+        "session_1": {
+          "session_id": "ses_001",
+          "nonces_seen": ["nonce_shared"]
+        },
+        "session_2": {
+          "session_id": "ses_002"
+        },
+        "replay_attempt": {
+          "session_id": "ses_002",
+          "nonce": "nonce_shared"
+        },
+        "nonce_retention_policy": {
+          "cross_session_check": true,
+          "retention_period_seconds": 420
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "NONCE_REPLAY",
+          "message": "Nonce has been used in a previous session",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-011",
+      "name": "time_window_replay",
+      "description": "Detection of replay within acceptable time window but outside challenge",
+      "scenario": "Proof is within general time window but challenge is no longer valid",
+      "input": {
+        "challenge": {
+          "challenge_id": "chl_001",
+          "target_agent_id": "agt_B001",
+          "nonce": "nonce_replay011",
+          "issued_at": "2026-03-24T12:00:00Z",
+          "expires_at": "2026-03-24T12:01:00Z"
+        },
+        "proof": {
+          "challenge_id": "chl_001",
+          "agent_id": "agt_B001",
+          "nonce": "nonce_replay011",
+          "timestamp": "2026-03-24T12:00:30Z",
+          "signature": "valid_sig"
+        },
+        "challenge_cache": {
+          "challenge_status": "USED",
+          "used_at": "2026-03-24T12:00:15Z"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "CHALLENGE_ALREADY_USED",
+          "message": "Challenge has already been used for verification",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "REPLAY-012",
+      "name": "verifier_restart_nonce_check",
+      "description": "Nonce replay detection after verifier restart",
+      "scenario": "Verifier restarts and must still detect replay within retention window",
+      "input": {
+        "verifier_state": {
+          "restarted_at": "2026-03-24T12:15:00Z",
+          "nonce_retention_policy": {
+            "post_restart_grace_seconds": 0,
+            "persistent_nonce_store": true
+          }
+        },
+        "persistent_nonce_store": {
+          "nonces_seen": [
+            {
+              "nonce": "nonce_persistent",
+              "seen_at": "2026-03-24T12:10:00Z"
+            }
+          ]
+        },
+        "replay_attempt": {
+          "nonce": "nonce_persistent",
+          "timestamp": "2026-03-24T12:20:00Z"
+        }
+      },
+      "expected_output": {
+        "verification_status": "REJECTED",
+        "error": {
+          "code": "NONCE_REPLAY",
+          "message": "Nonce found in persistent store - replay detected",
+          "retryable": false,
+          "risk_level": "HIGH"
+        }
+      }
+    }
+  ]
+}

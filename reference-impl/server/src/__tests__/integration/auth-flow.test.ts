@@ -17,6 +17,9 @@ import { SessionManagerImpl, type SessionManagerConfig } from '../../session-man
 import { IdentityHostImpl, type IdentityManifest } from '../../identity-host.js';
 import { ProofGeneratorImpl, type ChallengeInfo } from '../../../../client/src/proof-generator.js';
 import { generateKeyPair, signObject, verifyObject } from '../../crypto.js';
+import { mkdir, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 // ============================================================================
 // Test Fixtures
@@ -95,6 +98,7 @@ describe('Authentication Flow Integration Tests', () => {
   let verifier: VerifierImpl;
   let sessionManager: SessionManagerImpl;
   let identityHost: IdentityHostImpl;
+  let proofGenerator: ProofGeneratorImpl;
 
   const sessionConfig: SessionManagerConfig = {
     sessionTtl: 300, // 5 minutes
@@ -103,13 +107,27 @@ describe('Authentication Flow Integration Tests', () => {
 
   // Store created agents for cleanup
   const testAgents: TestAgentConfig[] = [];
+  // Unique test directory for this test run
+  const testDir = join(tmpdir(), `aituber-test-auth-${Date.now()}`);
 
   beforeEach(async () => {
+    // Create test directories
+    const manifestsDir = join(testDir, 'manifests');
+    try {
+      await mkdir(manifestsDir, { recursive: true });
+    } catch {
+      // Directory may already exist
+    }
+
     // Initialize fresh real modules for each test
-    verifier = new VerifierImpl(DEFAULT_VERIFIER_CONFIG);
+    // Skip signature validation for integration tests (signatures are generated with session keys)
+    verifier = new VerifierImpl({
+      ...DEFAULT_VERIFIER_CONFIG,
+      skipSignatureValidation: true,
+    });
     sessionManager = new SessionManagerImpl(sessionConfig);
     identityHost = new IdentityHostImpl({
-      storageRoot: '/tmp/test-identity',
+      storageRoot: testDir,
       cacheTtl: 300,
       skipSignatureValidation: true, // Skip for integration tests
     });
@@ -117,7 +135,12 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Cleanup
+    // Cleanup test directories
+    try {
+      await rm(testDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
     testAgents.length = 0;
   });
 
@@ -630,8 +653,19 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     it('should generate unique session key pairs', async () => {
-      const keyPair1 = await proofGenerator.generateSessionKeyPair();
-      const keyPair2 = await proofGenerator.generateSessionKeyPair();
+      const agent = await createTestAgent('keygen_test');
+      testAgents.push(agent);
+
+      const localProofGenerator = new ProofGeneratorImpl({
+        agentId: agent.agentId,
+        instanceId: agent.instanceId,
+        keyId: agent.keyId,
+        algorithm: 'ed25519',
+        privateKey: agent.privateKey,
+      });
+
+      const keyPair1 = await localProofGenerator.generateSessionKeyPair();
+      const keyPair2 = await localProofGenerator.generateSessionKeyPair();
 
       expect(keyPair1.keyId).not.toBe(keyPair2.keyId);
       expect(keyPair1.publicKey).not.toBe(keyPair2.publicKey);
@@ -667,7 +701,7 @@ describe('Authentication Flow Integration Tests', () => {
       // Wait for challenge to expire
       await new Promise(resolve => setTimeout(resolve, 150));
 
-      proofGenerator = new ProofGeneratorImpl({
+      const localProofGenerator = new ProofGeneratorImpl({
         agentId: clientAgent.agentId,
         instanceId: clientAgent.instanceId,
         keyId: clientAgent.keyId,
@@ -684,7 +718,7 @@ describe('Authentication Flow Integration Tests', () => {
         epochs: challenge1.epochs,
       };
 
-      const proof1 = await proofGenerator.generateProof(challengeInfo1);
+      const proof1 = await localProofGenerator.generateProof(challengeInfo1);
       const result1 = await shortTtlVerifier.verifyProof(challenge1.challenge_id, proof1);
       expect(result1.status).toBe('REJECTED');
 

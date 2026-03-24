@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/discovery/resolve-response.schema.json",
+  "title": "Identity Resolution Response",
+  "description": "Response containing the resolved identity manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "resolution_status": {
+      "type": "string",
+      "enum": ["RESOLVED", "NOT_FOUND", "INVALID_SIGNATURE", "BINDING_MISMATCH", "ERROR"]
+    },
+    "identity_manifest_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "identity_manifest": {
+      "type": "object",
+      "description": "The resolved identity manifest object"
+    },
+    "binding_match": {
+      "type": "boolean",
+      "description": "Whether the platform binding matches the discovery source"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["resolution_status"]
+}

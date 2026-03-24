@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/core/common.schema.json",
+  "title": "AITuber Protocol Common Types",
+  "type": "object",
+  "$defs": {
+    "idString": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "hashString": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512
+    },
+    "uriString": {
+      "type": "string",
+      "format": "uri"
+    },
+    "platformType": {
+      "type": "string",
+      "enum": ["x", "youtube", "discord", "misskey", "twitch", "web", "other"]
+    },
+    "bindingStatus": {
+      "type": "string",
+      "enum": ["active", "pending", "removed", "revoked", "quarantined"]
+    },
+    "agentStatus": {
+      "type": "string",
+      "enum": ["active", "quarantined", "recovered", "revoked", "suspended"]
+    },
+    "quarantineLevel": {
+      "type": "string",
+      "enum": ["soft", "hard", "full"]
+    },
+    "keyScope": {
+      "type": "string",
+      "enum": ["root", "operation", "session", "recovery", "watcher", "other"]
+    },
+    "capabilityName": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_.:-]{2,127}$"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {
+          "$ref": "#/$defs/idString"
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "canonicalization": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "value": {
+          "type": "string",
+          "minLength": 16
+        }
+      },
+      "required": ["key_id", "algorithm", "canonicalization", "value"]
+    },
+    "keyRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {
+          "$ref": "#/$defs/idString"
+        },
+        "scope": {
+          "$ref": "#/$defs/keyScope"
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "public_key": {
+          "type": "string",
+          "minLength": 16
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "revoked", "expired", "quarantined"]
+        },
+        "valid_from": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/timestamp"
+        }
+      },
+      "required": ["key_id", "scope", "algorithm", "public_key", "status", "valid_from"]
+    },
+    "platformBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "platform_type": {
+          "$ref": "#/$defs/platformType"
+        },
+        "platform_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "display_handle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "binding_status": {
+          "$ref": "#/$defs/bindingStatus"
+        },
+        "verified_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "bound_by_key_id": {
+          "$ref": "#/$defs/idString"
+        },
+        "binding_version": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        }
+      },
+      "required": [
+        "platform_type",
+        "platform_account_id",
+        "display_handle",
+        "binding_status",
+        "verified_at",
+        "bound_by_key_id",
+        "binding_version"
+      ]
+    },
+    "serviceEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "url": {
+          "$ref": "#/$defs/uriString"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": ["name", "url", "kind"]
+    },
+    "capabilitySummary": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/capabilityName"
+      },
+      "uniqueItems": true
+    },
+    "epochBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity_version": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "revocation_epoch": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "policy_epoch": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "session_epoch": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "ledger_checkpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": ["identity_version", "revocation_epoch"]
+    },
+    "highRiskEpochBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity_version": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "revocation_epoch": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "policy_epoch": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "session_epoch": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "ledger_checkpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "identity_version",
+        "revocation_epoch",
+        "policy_epoch",
+        "session_epoch",
+        "ledger_checkpoint"
+      ]
+    },
+    "riskLevel": {
+      "type": "string",
+      "enum": ["low", "high"]
+    },
+    "trustLevel": {
+      "type": "string",
+      "enum": ["first_seen", "known", "verified", "restricted"]
+    },
+    "timeHealthStatus": {
+      "type": "string",
+      "enum": ["healthy", "skewed", "untrusted", "unknown"]
+    },
+    "adminActionType": {
+      "type": "string",
+      "enum": [
+        "policy_update",
+        "binding_update",
+        "recovery_initiate",
+        "recovery_complete",
+        "key_revoke",
+        "key_rotate"
+      ]
+    }
+  }
+}
