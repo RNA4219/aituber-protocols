@@ -1,0 +1,26 @@
+name: CodeQL Configuration
+
+# 解析するパス
+paths:
+  - client/src
+  - server/src
+  - watcher/src
+
+# 除外するパス
+paths-ignore:
+  - '**/node_modules/**'
+  - '**/__tests__/**'
+  - '**/coverage/**'
+  - '**/dist/**'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+
+# クエリスイート
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+# カスタムクエリ（オプション）
+# query-filters:
+#   - exclude:
+#       id: js/unused-local-variable
