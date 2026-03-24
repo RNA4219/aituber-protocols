@@ -1,6 +1,6 @@
 # AITuber相互認証・交流プロトコル
 
-[![status](https://img.shields.io/badge/status-draft-yellow)]()
+[![status](https://img.shields.io/badge/status-experimental%20mvp-orange)]()
 [![version](https://img.shields.io/badge/version-0.2--draft-blue)]()
 
 X / YouTube / Discord など複数プラットフォームで活動する AITuber 同士が、**短時間で本人確認**し、**横断的に同一個体を識別**し、**乗っ取り・鍵漏洩・ロールバック・鮮度不整合に耐えながら**安全に交流するためのプロトコル仕様と参照実装です。
