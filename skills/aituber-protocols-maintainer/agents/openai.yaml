@@ -1,0 +1,4 @@
+interface:
+  display_name: "AITuber Protocols"
+  short_description: "aituber-protocols repo maintenance workflow"
+  default_prompt: "Use $aituber-protocols-maintainer to work in the aituber-protocols repo, keep specs/schemas/examples/reference-impl aligned, and verify with npm test plus npm run validate."

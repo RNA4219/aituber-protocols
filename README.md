@@ -3,7 +3,33 @@
 [![status](https://img.shields.io/badge/status-draft-yellow)]()
 [![version](https://img.shields.io/badge/version-0.2--draft-blue)]()
 
-X / YouTube / Discord 上で活動する AITuber 同士が、**5秒程度以内で相互認証**し、**プラットフォーム横断で同一個体を認識**し、**乗っ取り・鍵漏洩・ロールバック・キャッシュ失効競合に耐性**を持ち、**認証後に安全な情報交流・コラボ交渉**を行い、**コミュニティ横断の透明性ログで監査可能**となるためのプロトコル仕様および参照実装。
+X / YouTube / Discord など複数プラットフォームで活動する AITuber 同士が、**短時間で本人確認**し、**横断的に同一個体を識別**し、**乗っ取り・鍵漏洩・ロールバック・鮮度不整合に耐えながら**安全に交流するためのプロトコル仕様と参照実装です。
+
+この README は「全体像を最短でつかむための入口」です。詳細な正本は [要件定義](./specs/core/requirements.md) と [インターフェース](./specs/core/interfaces.md) を参照してください。
+
+## 最初に読む場所
+
+- 全体像を知りたい: [要件定義](./specs/core/requirements.md)
+- 実装境界を知りたい: [インターフェース](./specs/core/interfaces.md)
+- 状態遷移を追いたい: [状態遷移](./specs/auth/state-machine.md)
+- 動くコードを見たい: [reference-impl](./reference-impl/)
+- サンプルから入りたい: [examples](./examples/)
+
+## 3行でいうと
+
+- SNS アカウントではなく、**Agent 自身の鍵と manifest** を信頼の中心に置きます。
+- 認証は **Challenge → Proof → Session** で行い、失効・隔離・回復を前提に設計しています。
+- 認証後は Exchange / Interop / Ledger を使って、安全な交流と監査可能な記録を両立します。
+
+## AI Agent 向け導線
+
+- Codex から入る: [AGENTS.md](./AGENTS.md)
+- Claude Code から入る: [CLAUDE.md](./CLAUDE.md)
+- 共通 Skill 本体: [skills/aituber-protocols-maintainer/SKILL.md](./skills/aituber-protocols-maintainer/SKILL.md)
+- 定型プロンプト集: [prompts/agent-tasks.md](./prompts/agent-tasks.md)
+- 呼び出し例: `Use $aituber-protocols-maintainer to review or update this repo.`
+
+この Skill は、仕様更新、schema 整合、example / test vector 修正、reference implementation の検収・README 更新までをまとめて扱うためのものです。
 
 ---
 
@@ -131,17 +157,26 @@ git clone https://github.com/example/aituber-protocols.git
 cd aituber-protocols/reference-impl
 
 # 依存パッケージをインストール
-pnpm install
+npm install
 ```
 
 ### ステップ2：テストを実行する
 
 ```bash
 # 全テストを実行
-pnpm test
+npm test
 
-# 特定のテストだけ実行
-pnpm test client/src/__tests__/agent-client.test.ts
+# examples / test vectors と schema の整合確認
+npm run validate
+
+# 統合テストを実行
+npm run test:integration
+```
+
+`reference-impl/scripts/integration-test.ts` は `--server-url` を受け取れます。
+
+```bash
+npm run test:integration -- --server-url http://127.0.0.1:3200
 ```
 
 ### ステップ3：鍵ペアを生成する
@@ -218,6 +253,13 @@ const result = await client.resolveIdentity({
 console.log('解決結果:', result.resolution_status);
 // → 'RESOLVED' なら成功
 ```
+
+### まず触るならこの順番
+
+1. [specs/core/requirements.md](./specs/core/requirements.md) で全体方針を把握する
+2. [examples/handshake/](./examples/handshake/) と [examples/discovery/](./examples/discovery/) で実データを見る
+3. [reference-impl/](./reference-impl/) で `npm test` と `npm run validate` を実行する
+4. 実装詳細が必要なら [specs/core/interfaces.md](./specs/core/interfaces.md) を読む
 
 ---
 
@@ -780,7 +822,7 @@ describe('MyComponent', () => {
 | Reference Impl (Client) | ✅ 実装完了 |
 | Reference Impl (Server) | ✅ 実装完了 |
 | Reference Impl (Watcher) | ✅ 実装完了 |
-| テスト | ✅ 981テストパス |
+| テスト | ✅ 1004テストパス |
 
 ---
 
